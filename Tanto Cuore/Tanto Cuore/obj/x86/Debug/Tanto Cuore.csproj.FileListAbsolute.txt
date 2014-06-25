@@ -1,0 +1,7 @@
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Tanto Cuore.exe
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Tanto Cuore.pdb
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\ResolveAssemblyReference.cache
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Microsoft.Xna.Framework.RuntimeProfile.txt
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.exe
+c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.pdb
+C:\Documents and Settings\Cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\menuFont.xnb

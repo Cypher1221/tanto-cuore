@@ -5,3 +5,76 @@ c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto 
 c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.exe
 c:\documents and settings\cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.pdb
 C:\Documents and Settings\Cypher\my documents\visual studio 2010\Projects\Tanto Cuore\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\menuFont.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\menuFont.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\1.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\10.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\11.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\12.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\13.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\14.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\15.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\16.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\17.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\18.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\19.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\2.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\20.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\21.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\22.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\23.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\24.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\25.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\26.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\27.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\28.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\29.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\3.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\30.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\31.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\32.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\33.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\4.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\5.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\6.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\7.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\8.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\9.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\1-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\10-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\11-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\12-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\13-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\14-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\15-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\16-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\17-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\18-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\19-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\2-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\20-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\21-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\22-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\23-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\24-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\25-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\26-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\27-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\28-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\29-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\3-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\30-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\31-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\32-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\33-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\4-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\5-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\6-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\7-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\8-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\9-mini.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Tanto Cuore.exe
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Tanto Cuore.pdb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Microsoft.Xna.Framework.RuntimeProfile.txt
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.exe
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.pdb

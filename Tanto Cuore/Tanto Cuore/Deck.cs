@@ -54,10 +54,34 @@ namespace Tanto_Cuore
 
         public Card showTopCard()
         {
-            return deck.ElementAt(0);
+            if (deck.Count != 0)
+            {
+                return deck.ElementAt(0);
+            }
+            return null;
         }
 
         public void removeTopCard()
+        {
+            discardPile.Add(deck.ElementAt(0));
+            deck.RemoveAt(0);
+        }
+
+        public Card topDiscardPileCard()
+        {
+            if (discardPile.Count != 0)
+            {
+                return discardPile.ElementAt(discardPile.Count - 1);
+            }
+            return null;
+        }
+
+        internal void discardHand(List<Card> list)
+        {
+            discardPile.AddRange(list);
+        }
+
+        internal void discardTopCard()
         {
             discardPile.Add(deck.ElementAt(0));
             deck.RemoveAt(0);

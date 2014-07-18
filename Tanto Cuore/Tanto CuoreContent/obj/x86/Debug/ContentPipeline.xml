@@ -604,6 +604,15 @@
       <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\9-mini.xnb</Output>
       <Time>2014-07-03T16:46:57.25-07:00</Time>
     </Item>
+    <Item>
+      <Source>cardBack.bmp</Source>
+      <Name>cardBack</Name>
+      <Importer>TextureImporter</Importer>
+      <Processor>TextureProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\cardBack.xnb</Output>
+      <Time>2014-07-17T14:31:36.0625-07:00</Time>
+    </Item>
     <BuildSuccessful>true</BuildSuccessful>
     <Settings>
       <TargetPlatform>Windows</TargetPlatform>

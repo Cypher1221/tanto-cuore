@@ -78,3 +78,4 @@ C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cu
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Microsoft.Xna.Framework.RuntimeProfile.txt
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.exe
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\obj\x86\Debug\Tanto Cuore.pdb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\cardBack.xnb

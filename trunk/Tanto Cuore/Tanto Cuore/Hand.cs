@@ -30,5 +30,22 @@ namespace Tanto_Cuore
             hand.RemoveAt(index);
             return playedCard;
         }
+
+        public Card lookAtCardInHand(int index)
+        {
+            return hand.ElementAt(index);
+        }
+
+        internal Card discardCard(int handIndex)
+        {
+            Card discardCard = hand.ElementAt(handIndex);
+            hand.RemoveAt(handIndex);
+            return discardCard;
+        }
+
+        internal void clear()
+        {
+            hand.Clear() ;
+        }
     }
 }

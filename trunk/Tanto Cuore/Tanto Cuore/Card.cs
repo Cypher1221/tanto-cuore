@@ -167,7 +167,7 @@ namespace Tanto_Cuore
                     break;
                 case 17:
                     VP = 1;
-                    cost = 3;
+                    cost = 2;
                     draws = 1;
                     employments = 0;
                     servings = 0;
@@ -177,7 +177,7 @@ namespace Tanto_Cuore
                     break;
                 case 18:
                     VP = 1;
-                    cost = 3;
+                    cost = 2;
                     draws = 0;
                     employments = 0;
                     servings = 0;
@@ -328,6 +328,51 @@ namespace Tanto_Cuore
         public int getVP()
         {
             return VP;
+        }
+
+        public int getLove()
+        {
+            return love;
+        }
+
+        public int getServings()
+        {
+            return servings;
+        }
+
+        public int getChamperCost()
+        {
+            return chamberCost;
+        }
+
+        public int getCost()
+        {
+            return cost;
+        }
+
+        public int getEmployments()
+        {
+            return employments;
+        }
+
+        public bool getCanBeChambered()
+        {
+            return canBeChambered;
+        }
+
+        public bool getVariableVP()
+        {
+            return variableVP;
+        }
+
+        public bool getSpecialAbility()
+        {
+            return specialAbility;
+        }
+
+        public int getDraws()
+        {
+            return draws;
         }
     }
 }

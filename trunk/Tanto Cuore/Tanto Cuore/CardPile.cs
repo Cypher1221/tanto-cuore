@@ -50,5 +50,18 @@ namespace Tanto_Cuore
             pile.RemoveAt(0);
             return card;
         }
+        public Card lookAtTopCard()
+        {
+            return pile.ElementAt(0);
+        }
+
+        public int getNumberOfRemainingCards(){
+            return pile.Count;
+        }
+
+        public void addCard(Card card)
+        {
+            pile.Add(card);
+        }
     }
 }

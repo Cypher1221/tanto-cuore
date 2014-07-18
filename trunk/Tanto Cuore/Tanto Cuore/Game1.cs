@@ -16,7 +16,7 @@ namespace Tanto_Cuore
     /// </summary>
     public class Game1 : Microsoft.Xna.Framework.Game
     {
-        GraphicsDeviceManager graphics;
+        static public GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         int screenNumber = 0; //0 main screen, 1 single player setup, 2 multiplayer setup, 3 settings, 4 gamplay screen, 5 results screen
         int currentMainMenuOption =0 ; //0 single player setup, 1 multiplayer setup, 2 settings, 3 exit game.
@@ -27,7 +27,7 @@ namespace Tanto_Cuore
         const int gameplayScreen = 4;
         const int resultsScreen = 5;
         int numberOfMainMenuOptions = 4;
-        SpriteFont font;
+        static public SpriteFont font;
         String[] mainMenuOptionsStrings;
         int currentSinglePlayerSetupMenuOption = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of ai, 4 start, 5 return.
         int numberOfSinglePlayerSetupMenuOptions = 6;
@@ -37,8 +37,9 @@ namespace Tanto_Cuore
         PlayArea playArea;
         int numberOfAIPlayers = 1;
 
-        Texture2D[] cardPicturesFull;
-        Texture2D[] cardPicturesMini;
+        static public Texture2D[] cardPicturesFull;
+        static public Texture2D[] cardPicturesMini;
+        static public Texture2D cardBack;
 
         KeyboardState keyboardOld;
         MouseState mouseOld;
@@ -47,6 +48,9 @@ namespace Tanto_Cuore
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+            graphics.IsFullScreen = false;
+            graphics.PreferredBackBufferHeight = 700;
+            graphics.PreferredBackBufferWidth = 1000;
             Content.RootDirectory = "Content";
         }
 
@@ -75,20 +79,7 @@ namespace Tanto_Cuore
             singlePlayerSetupMenuOptionsStrings[5] = "Return";
             cardPicturesFull = new Texture2D[33];
             cardPicturesMini = new Texture2D[33];
-            PlayArea playArea = new PlayArea();
             base.Initialize();
-            //List<Card> generalMaids = new List<Card>();
-            //for (int index = 0; index < 15; index++)
-            //{
-            //    generalMaids.Add(new Card(index + 3));
-            //}
-            //CardPile generalMaidsPile = new CardPile(generalMaids);
-            //generalMaids = new List<Card>();
-            //for (int index = 0; index < 10; index++)
-            //{
-            //    generalMaids.Add(generalMaidsPile.getTopCard());
-            //}
-            //PlayArea playArea2 = new PlayArea(generalMaids);
         }
 
         /// <summary>
@@ -105,6 +96,7 @@ namespace Tanto_Cuore
                 cardPicturesFull[index] = this.Content.Load<Texture2D>((index + 1) + "");
                 cardPicturesMini[index] = this.Content.Load<Texture2D>((index + 1) + "-mini");
             }
+            cardBack = this.Content.Load<Texture2D>("cardBack");
         }
 
         /// <summary>
@@ -148,6 +140,7 @@ namespace Tanto_Cuore
                 case multiplayerSetup:
                     break;
                 case gameplayScreen:
+                    playArea.drawPlayArea(gameTime, spriteBatch);
                     break;
                 case settings:
                     break;
@@ -189,6 +182,10 @@ namespace Tanto_Cuore
                     }
                     else if (i == 3)
                     {
+                        if (numberOfAIPlayers == 4)
+                        {
+                            spriteBatch.DrawString(font, singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers + " AI only game", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 150 + i * 25), Color.Red);
+                        }
                         spriteBatch.DrawString(font, singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 150 + i * 25), Color.Red);
                     }
                     else
@@ -216,6 +213,10 @@ namespace Tanto_Cuore
                     }
                     else if (i == 3)
                     {
+                        if (numberOfAIPlayers == 4)
+                        {
+                            spriteBatch.DrawString(font, singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers + " AI only game", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 150 + i * 25), Color.White);
+                        }
                         spriteBatch.DrawString(font, singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(singlePlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 150 + i * 25), Color.White);
                     }
                     else
@@ -302,6 +303,10 @@ namespace Tanto_Cuore
             {
                 handleSinglePlayerSetupMenuInput(keyboard, gamepad);
             }
+            else if (screenNumber == gameplayScreen)
+            {
+                playArea.handleGamePlayScreenInput(keyboard, gamepad, keyboardOld, gamepadOld);
+            }
             else
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -330,6 +335,8 @@ namespace Tanto_Cuore
             mouseOld = mouse;
             keyboardOld = keyboard;
         }
+
+        
 
         private void handleSinglePlayerSetupMenuInput(KeyboardState keyboard, GamePadState gamepad)
         {
@@ -383,6 +390,50 @@ namespace Tanto_Cuore
                 }
                 else if (currentSinglePlayerSetupMenuOption == 4)
                 {
+                    if (beginnerMode)
+                    {
+                        if (numberOfAIPlayers == 4)
+                        {
+                            playArea = new PlayArea(numberOfAIPlayers);
+                        }
+                        else
+                        {
+                            playArea = new PlayArea(1 + numberOfAIPlayers);
+                        }
+                    }
+                    else if (randomMode)
+                    {
+                        if (numberOfAIPlayers == 4)
+                        {
+                            List<Card> generalMaids = new List<Card>();
+                            for (int index = 0; index < 15; index++)
+                            {
+                                generalMaids.Add(new Card(index + 3));
+                            }
+                            CardPile generalMaidsPile = new CardPile(generalMaids);
+                            generalMaids = new List<Card>();
+                            for (int index = 0; index < 10; index++)
+                            {
+                                generalMaids.Add(generalMaidsPile.getTopCard());
+                            }
+                            playArea = new PlayArea(generalMaids, numberOfAIPlayers);
+                        }
+                        else
+                        {
+                            List<Card> generalMaids = new List<Card>();
+                            for (int index = 0; index < 15; index++)
+                            {
+                                generalMaids.Add(new Card(index + 3));
+                            }
+                            CardPile generalMaidsPile = new CardPile(generalMaids);
+                            generalMaids = new List<Card>();
+                            for (int index = 0; index < 10; index++)
+                            {
+                                generalMaids.Add(generalMaidsPile.getTopCard());
+                            }
+                            playArea = new PlayArea(generalMaids, 1 + numberOfAIPlayers);
+                        }
+                    }
                     screenNumber = 4;
                 }
 

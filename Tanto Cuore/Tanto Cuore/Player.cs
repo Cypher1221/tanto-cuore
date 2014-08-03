@@ -21,10 +21,12 @@ namespace Tanto_Cuore
         int servings = 1;
         int love = 0;
         int employments = 1;
-        int playerNumber;
+        internal int playerNumber;
         int totalNumberOfPlayers;
         PlayArea thePlayArea;
-
+        public bool gainedExtraServing { get; set; }
+        public bool gainedExtraCard { get; set; }
+        public bool otherPlayerHasAmber { get; set; }
 
         public Player(int playerNumber, int totalNumberOfPlayers, PlayArea thePlayArea)
         {
@@ -40,6 +42,8 @@ namespace Tanto_Cuore
             this.playerNumber = playerNumber;
             this.totalNumberOfPlayers = totalNumberOfPlayers;
             this.thePlayArea = thePlayArea;
+            gainedExtraCard = false;
+            gainedExtraServing = false;
         }
 
         internal void draw(SpriteBatch spriteBatch)
@@ -88,6 +92,19 @@ namespace Tanto_Cuore
             {
                 servings--;
                 int drawsTemp = temp.getDraws();
+                if (drawsTemp > 0 && hasPrivateMaid() && !privateQuarters.privateMaid().hasIllness())
+                {
+                    if (privateMaid().getCardNumber() == 28 && !gainedExtraCard)
+                    {
+                        drawsTemp++;
+                        gainedExtraCard = false;
+                    }
+                    else if (privateMaid().getCardNumber() == 24 && !gainedExtraServing)
+                    {
+                        servings++;
+                        gainedExtraServing = false;
+                    }
+                }
                 int servingsTemp = temp.getServings();
                 int employmentsTemp = temp.getEmployments();
                 int loveTemp = temp.getLove();
@@ -130,13 +147,13 @@ namespace Tanto_Cuore
                             }
                             if (target2 < 0)
                             {
-                                target2 = totalNumberOfPlayers;
+                                target2 = totalNumberOfPlayers-1;
                             }
-                            if (target1 != playerNumber)
+                            if (target1 != playerNumber && !thePlayArea.playerHasCard(target1, 14))
                             {
                                 thePlayArea.addBadHabitTo(target1);
                             }
-                            if (target2 != playerNumber && target1 != target2)
+                            if (target2 != playerNumber && target1 != target2 && !thePlayArea.playerHasCard(target2, 14))
                             {
                                 thePlayArea.addBadHabitTo(target1);
                             }
@@ -145,7 +162,10 @@ namespace Tanto_Cuore
                             thePlayArea.decideToDiscardForServingsMode();
                             break;
                         case 12:
-                            thePlayArea.selectDeckMode();
+                            if (thePlayArea.aPlayerHasCardsInDeck())
+                            {
+                                thePlayArea.selectDeckMode();
+                            }
                             break;
                         case 14:
                             if (hasEvents())
@@ -167,7 +187,7 @@ namespace Tanto_Cuore
 
         private bool hasEvents()
         {
-            if (!hasMaidsInPrivateQuarters())
+            if (!(hasChamberMaids() || hasPrivateMaid()))
             {
                 return false;
             }
@@ -182,9 +202,9 @@ namespace Tanto_Cuore
             deck.discardCard(hand.discardCard(handIndex));
         }
         
-        internal bool hasMaidsInPrivateQuarters()
+        internal bool hasChamberMaids()
         {
-            return privateQuarters.containsCards();
+            return privateQuarters.hasChamberMaids();
         }
 
         internal void addBadHabitToPrivateQuarters(Card card)
@@ -204,7 +224,17 @@ namespace Tanto_Cuore
             servings = 1;
             love = 0;
             employments = 1;
-            for (int index = 0; index < 5; index++)
+            int handsize = 5;
+            if (otherPlayerHasAmber)
+            {
+                if (!(deck.showTopCard().getCardNumber() <= 18))
+                {
+                    handsize--;
+                }
+                deck.discardTopCard();
+                otherPlayerHasAmber = false;
+            }
+            for (int index = 0; index < handsize; index++)
             {
                 hand.addCardToHand(deck.drawCard());
             }
@@ -257,12 +287,16 @@ namespace Tanto_Cuore
 
         internal Card lookAtCardInHand(int currentCardNumber)
         {
-            return hand.getHand().ElementAt(currentCardNumber);
+            if (currentCardNumber < hand.getHand().Count)
+            {
+                return hand.getHand().ElementAt(currentCardNumber);
+            }
+            return null;
         }
 
-        internal void drawPrivateQuarters(SpriteBatch spriteBatch)
+        internal void drawPrivateQuartersRemovingIllnesses(SpriteBatch spriteBatch)
         {
-            privateQuarters.draw(spriteBatch, thePlayArea);
+            privateQuarters.drawRemovingIllnesses(spriteBatch, thePlayArea);
         }
 
         internal int getNumberOfMaidsInPrivateQuarters()
@@ -335,6 +369,181 @@ namespace Tanto_Cuore
         internal Card lookAtTopCardOfDeck()
         {
             return deck.showTopCard();
+        }
+
+        internal void refundIllness()
+        {
+            love += 4;
+            employments++;
+        }
+
+        internal void giveIllnessToChamberMaid(int item)
+        {
+            privateQuarters.addIllnessToCard(item, new Card(29));
+        }
+
+        internal void giveIllnessToPrivateMaid()
+        {
+            privateQuarters.addIllnessToPrivateMaid();
+        }
+
+        internal bool hasCardsInDeck()
+        {
+            return deck.hasCards();
+        }
+
+        internal void drawPrivateQuarters(SpriteBatch spriteBatch)
+        {
+            privateQuarters.draw(spriteBatch, thePlayArea);
+        }
+
+        internal bool exchange(Card card)
+        {
+            if (card.getCost() <= 4)
+            {
+                hand.addCardToHand(card);
+                hand.removeOneLove();
+                return true;
+            }
+            return false;
+        }
+
+        internal void addServing()
+        {
+            servings++;
+        }
+
+        internal void startTurn()
+        {
+            if (hasPrivateMaid() && !privateQuarters.privateMaid().hasIllness())
+            {
+                int privateMaidNumber = privateQuarters.getPrivateMaidNumber();
+                switch (privateMaidNumber)
+                {
+                    case 19:
+                        thePlayArea.otherPlayersDiscardTopCardDuringEndTurn();
+                        break;
+                    case 20:
+                        if ((privateQuarters.hasChamberMaids() || privateQuarters.hasPrivateMaid()) && thePlayArea.otherPlayersHaveMaidsInPrivateQuarters(this))
+                        {
+                            thePlayArea.discardHandToAddIllnessesToOneMaidMode();
+                        }
+                        break;
+                    case 21:
+                        if (privateQuarters.hasEvents() && thePlayArea.otherPlayersHaveMaidsInPrivateQuarters(this))
+                        {
+                            thePlayArea.moveEventCardToAnotherPlayersPrivateQuartersMode();
+                        }
+                        break;
+                    case 22:
+                        thePlayArea.loveOrEmploymentChoice();
+                        break;
+                    case 23:
+                        hand.addCardToHand(deck.drawCard());
+                        break;
+                    case 24:
+                        gainedExtraServing = false;
+                        break;
+                    case 25:
+                        thePlayArea.lookAtRandomCardInAnotherPlayersHandAndSwapMode();
+                        break;
+                    case 26:
+                        servings++;
+                        break;
+                    case 27:
+                        love++;
+                        break;
+                    case 28:
+                        gainedExtraCard = false;
+                        break;
+                }
+            }
+            if (hand.containsCard(31) && privateQuarters.hasIllnesses())
+            {
+                thePlayArea.discard3LoveToRemoveIllness();
+            }
+        }
+        
+        internal void addLove()
+        {
+            love++;
+        }
+
+        internal void addEmployment()
+        {
+            employments++;
+        }
+
+        internal void exchangeCardsWith(Player player, int randomCard1, int randomCard2)
+        {
+            Card temp1 = player.hand.discardCard(randomCard2);
+            Card temp2 = hand.discardCard(randomCard1);
+            hand.addCardToHand(temp1);
+            player.hand.addCardToHand(temp2);
+        }
+
+        internal int find3LoveCard()
+        {
+            for (int index = 0; index < hand.getHand().Count; index++)
+            {
+                if (hand.getHand().ElementAt(index).getCardNumber() == 31)
+                {
+                    return index;
+                }
+            }
+            return 0;
+        }
+
+        internal bool handContains(Card card)
+        {
+            if (hand.getHand().Count > 0)
+            {
+                return hand.containsCard(card.getCardNumber());
+            }
+            return false;
+        }
+
+        internal PrivateQuartersCard chamberMaidAt(int item)
+        {
+            return privateQuarters.chamberMaidAt(item);
+        }
+
+        internal VictoryPointPackage calulateVP()
+        {
+            VictoryPointPackage VP = new VictoryPointPackage();
+            for (int index = 0; index < hand.getHand().Count; index++)
+            {
+                VP.VP += hand.getHand().ElementAt(index).getVP();
+                if (hand.getHand().ElementAt(index).getVariableVP())
+                {
+                    int cardNumber = hand.getHand().ElementAt(index).getCardNumber();
+                    switch (cardNumber)
+                    {
+                        case 2:
+                            VP.coletteCounter++;
+                            break;
+                        case 4:
+                            VP.opheliaCounter++;
+                            break;
+                    }
+                }
+            }
+            VP = deck.CalculateVP(VP);
+            if (VP.opheliaCounter > 1)
+            {
+                VP.VP += calulateVPFromOphelia(VP.opheliaCounter);
+            }
+            VP = privateQuarters.caculateVP(VP);
+            return VP;
+        }
+
+        private int calulateVPFromOphelia(int p)
+        {
+            if (p % 2 == 0)
+            {
+                return p * -2;
+            }
+            return p * 2;
         }
     }
 }

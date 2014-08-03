@@ -32,7 +32,7 @@ namespace Tanto_Cuore
                     love = 0;
                     break;
                 case 2:
-                    VP = 2;
+                    VP = 1;
                     cost = 3;
                     draws = 0;
                     employments = 0;
@@ -320,6 +320,7 @@ namespace Tanto_Cuore
                     break;
             }
         }
+        
         public int getCardNumber()
         {
             return cardNumber;

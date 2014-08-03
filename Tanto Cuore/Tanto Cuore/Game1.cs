@@ -119,7 +119,11 @@ namespace Tanto_Cuore
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
             // TODO: Add your update logic here
-            input();
+            input(gameTime);
+            if (screenNumber == gameplayScreen && playArea.gameOver)
+            {
+                screenNumber = resultsScreen;
+            }
             base.Update(gameTime);
         }
 
@@ -145,11 +149,27 @@ namespace Tanto_Cuore
                 case settings:
                     break;
                 case resultsScreen:
+                    drawResultsScreen(gameTime);
                     break;
             }
             // TODO: Add your drawing code here
 
             base.Draw(gameTime);
+        }
+
+        private void drawResultsScreen(GameTime gameTime)
+        {
+            spriteBatch.Begin();
+            spriteBatch.DrawString(font, "Results Screen", new Vector2(), Color.White);
+            for (int index = 0; index < playArea.numberOfPlayers; index++)
+            {
+                spriteBatch.DrawString(font, "Player " + index + " Score: " + playArea.VP[index].VP, new Vector2(0, 10 + index * font.MeasureString("Player " + index + " Score: " + playArea.VP[index].VP).Y + font.MeasureString("Results Screen").Y), Color.White);
+            }
+            if (!playArea.gameIsTied)
+            {
+                spriteBatch.DrawString(font, "Player " + playArea.winner + " wins", new Vector2(0, font.MeasureString("Player " + playArea.winner + " wins").Y * (playArea.numberOfPlayers + 1) + 10), Color.White);
+            }
+            spriteBatch.End();
         }
 
         private void drawSinglePlayerSetupMenuOptionsStrings(GameTime gameTime)
@@ -289,7 +309,7 @@ namespace Tanto_Cuore
             }
         }
 
-        void input()
+        void input(GameTime gameTime)
         {
             KeyboardState keyboard = Keyboard.GetState();
             MouseState mouse = Mouse.GetState();
@@ -305,7 +325,7 @@ namespace Tanto_Cuore
             }
             else if (screenNumber == gameplayScreen)
             {
-                playArea.handleGamePlayScreenInput(keyboard, gamepad, keyboardOld, gamepadOld);
+                playArea.handleGamePlayScreenInput(keyboard, gamepad, keyboardOld, gamepadOld, gameTime);
             }
             else
             {
@@ -335,9 +355,7 @@ namespace Tanto_Cuore
             mouseOld = mouse;
             keyboardOld = keyboard;
         }
-
         
-
         private void handleSinglePlayerSetupMenuInput(KeyboardState keyboard, GamePadState gamepad)
         {
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||

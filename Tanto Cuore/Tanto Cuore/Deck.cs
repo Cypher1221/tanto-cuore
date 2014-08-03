@@ -86,5 +86,49 @@ namespace Tanto_Cuore
             discardPile.Add(deck.ElementAt(0));
             deck.RemoveAt(0);
         }
+
+        internal bool hasCards()
+        {
+            return deck.Count > 0;
+        }
+
+        internal VictoryPointPackage CalculateVP(VictoryPointPackage VP)
+        {
+            for (int index = 0; index < deck.Count; index++)
+            {
+                VP.VP += deck.ElementAt(index).getVP();
+                if (deck.ElementAt(index).getVariableVP())
+                {
+                    int cardNumber = deck.ElementAt(index).getCardNumber();
+                    switch (cardNumber)
+                    {
+                        case 2:
+                            VP.coletteCounter++;
+                            break;
+                        case 4:
+                            VP.opheliaCounter++;
+                            break;
+                    }
+                }
+            }
+            for (int index = 0; index < discardPile.Count; index++)
+            {
+                VP.VP += discardPile.ElementAt(index).getVP();
+                if (discardPile.ElementAt(index).getVariableVP())
+                {
+                    int cardNumber = discardPile.ElementAt(index).getCardNumber();
+                    switch (cardNumber)
+                    {
+                        case 2:
+                            VP.coletteCounter++;
+                            break;
+                        case 4:
+                            VP.opheliaCounter++;
+                            break;
+                    }
+                }
+            }
+            return VP;
+        }
     }
 }

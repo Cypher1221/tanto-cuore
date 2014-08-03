@@ -53,5 +53,14 @@ namespace Tanto_Cuore
         {
             return illnesses.Count != 0;
         }
+
+        internal int getVP()
+        {
+            if (hasIllness())
+            {
+                return 0;
+            }
+            return thisCard.getVP();
+        }
     }
 }

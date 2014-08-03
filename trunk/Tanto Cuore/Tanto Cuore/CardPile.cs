@@ -50,6 +50,7 @@ namespace Tanto_Cuore
             pile.RemoveAt(0);
             return card;
         }
+        
         public Card lookAtTopCard()
         {
             return pile.ElementAt(0);

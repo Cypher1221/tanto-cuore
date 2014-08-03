@@ -47,5 +47,29 @@ namespace Tanto_Cuore
         {
             hand.Clear() ;
         }
+
+        internal void removeOneLove()
+        {
+            for (int index = 0; index < hand.Count; index++)
+            {
+                if (hand.ElementAt(index).getCardNumber() == 33)
+                {
+                    hand.RemoveAt(index);
+                    return;
+                }
+            }
+        }
+
+        internal bool containsCard(int p)
+        {
+            for (int index = 0; index < hand.Count; index++)
+            {
+                if (hand.ElementAt(index).getCardNumber() == p)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

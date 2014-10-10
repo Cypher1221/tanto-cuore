@@ -107,6 +107,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AI Control.cs" />
     <Compile Include="Card.cs" />
     <Compile Include="CardPile.cs" />
     <Compile Include="Deck.cs" />

@@ -27,9 +27,11 @@ namespace Tanto_Cuore
         public bool gainedExtraServing { get; set; }
         public bool gainedExtraCard { get; set; }
         public bool otherPlayerHasAmber { get; set; }
+        public bool playerIsAI { get; set; }
 
-        public Player(int playerNumber, int totalNumberOfPlayers, PlayArea thePlayArea)
+        public Player(int playerNumber, int totalNumberOfPlayers, PlayArea thePlayArea, bool isAI)
         {
+            playerIsAI = isAI;
             hand = new Hand();
             deck = new Deck();
             hand.addCardToHand(deck.drawCard());
@@ -225,7 +227,7 @@ namespace Tanto_Cuore
             love = 0;
             employments = 1;
             int handsize = 5;
-            if (otherPlayerHasAmber)
+            if (deck.hasCards() && otherPlayerHasAmber)
             {
                 if (!(deck.showTopCard().getCardNumber() <= 18))
                 {
@@ -275,14 +277,16 @@ namespace Tanto_Cuore
             return false;
         }
 
-        internal void chamberMaidCard(int currentCardNumber)
+        internal bool chamberMaidCard(int currentCardNumber)
         {
             Card temp = hand.lookAtCardInHand(currentCardNumber);
             if (temp.getCanBeChambered() && servings >= temp.getChamperCost())
             {
                 privateQuarters.addCardToPrivateQuarters(hand.playCard(currentCardNumber));
                 servings -= temp.getChamperCost();
+                return true;
             }
+            return false;
         }
 
         internal Card lookAtCardInHand(int currentCardNumber)
@@ -544,6 +548,39 @@ namespace Tanto_Cuore
                 return p * -2;
             }
             return p * 2;
+        }
+
+        internal int getServings()
+        {
+            return servings;
+        }
+
+        internal void recheck()
+        {
+            if (hand.containsCard(31) && privateQuarters.hasIllnesses())
+            {
+                thePlayArea.discard3LoveToRemoveIllness();
+            }
+        }
+
+        internal int getLove()
+        {
+            return love;
+        }
+
+        internal int getEmployments()
+        {
+            return employments;
+        }
+
+        internal int getNumberOfBadHabits()
+        {
+            return privateQuarters.getNumberOfBadHabits();
+        }
+
+        internal bool privateMaidHasIllness()
+        {
+            return privateQuarters.privateMaidHasIllness();
         }
     }
 }

@@ -31,12 +31,12 @@ namespace Tanto_Cuore
         {
             if (faceDown)
             {
+                Random random = new Random();
                 List<Card> tempList = new List<Card>(pile);
                 pile.Clear();
                 int totalNumberOfCards = tempList.Count;
                 for (int index = 0; index < totalNumberOfCards; index++)
                 {
-                    Random random = new Random();
                     int randomCard = random.Next(0, tempList.Count);
                     pile.Add(tempList.ElementAt(randomCard));
                     tempList.RemoveAt(randomCard);

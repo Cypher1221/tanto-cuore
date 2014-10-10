@@ -15,20 +15,20 @@ namespace Tanto_Cuore
 {
     class PlayArea
     {
-        CardPile oneLove;
-        CardPile twoLove;
-        CardPile threeLove;
-        List<CardPile> generalMaids;
-        CardPile marianne;
-        CardPile colette;
-        CardPile badHabits;
-        CardPile illnesses;
-        CardPile privateMaidOne;
-        CardPile privateMaidTwo;
-        CardPile privateMaidPile;
+        internal CardPile oneLove;
+        internal CardPile twoLove;
+        internal CardPile threeLove;
+        internal List<CardPile> generalMaids;
+        internal CardPile marianne;
+        internal CardPile colette;
+        internal CardPile badHabits;
+        internal CardPile illnesses;
+        internal CardPile privateMaidOne;
+        internal CardPile privateMaidTwo;
+        internal CardPile privateMaidPile;
         int activePlayer = 0;
         public int numberOfPlayers;
-        Player[] playerList;
+        internal Player[] playerList;
         int currentPhase = 0;
         int currentCardNumber = 0;
         int currentRowNumber = 0;
@@ -69,7 +69,7 @@ namespace Tanto_Cuore
         public int winner;
         public bool gameIsTied;
 
-        public PlayArea(int numberOfPlayers)
+        public PlayArea(int numberOfPlayers, int numberOfAI)
         {
             selectPlayerModeBool = false;
             selectEventModeBool = false;
@@ -108,13 +108,21 @@ namespace Tanto_Cuore
             privateMaidTwo = new CardPile(privateMaidPile.getTopCard(), 1);
             playerList = new Player[numberOfPlayers];
             this.numberOfPlayers = numberOfPlayers;
+            int numberAIStartOn = numberOfPlayers - numberOfAI;
             for (int index = 0; index < numberOfPlayers; index++)
             {
-                playerList[index] = new Player(index, numberOfPlayers, this);
+                if (index >= numberAIStartOn)
+                {
+                    playerList[index] = new Player(index, numberOfPlayers, this, true);
+                }
+                else
+                {
+                    playerList[index] = new Player(index, numberOfPlayers, this, false);
+                }
             }
         }
 
-        public PlayArea(List<Card> genralMaidList, int numberOfPlayers)
+        public PlayArea(List<Card> genralMaidList, int numberOfPlayers, int numberOfAI)
         {
             selectPlayerModeBool = false;
             selectEventModeBool = false;
@@ -151,9 +159,17 @@ namespace Tanto_Cuore
             privateMaidTwo = new CardPile(privateMaidPile.getTopCard(), 1);
             playerList = new Player[numberOfPlayers];
             this.numberOfPlayers = numberOfPlayers;
+            int numberAIStartOn = numberOfPlayers - numberOfAI;
             for (int index = 0; index < numberOfPlayers; index++)
             {
-                playerList[index] = new Player(index, numberOfPlayers, this);
+                if (index >= numberAIStartOn)
+                {
+                    playerList[index] = new Player(index, numberOfPlayers, this, true);
+                }
+                else
+                {
+                    playerList[index] = new Player(index, numberOfPlayers, this, false);
+                }
             }
         }
 
@@ -1088,7 +1104,7 @@ namespace Tanto_Cuore
 
         public void handleGamePlayScreenInput(KeyboardState keyboard, GamePadState gamepad, KeyboardState keyboardOld, GamePadState gamepadOld, GameTime gameTime)
         {
-            if (!discard3LoveToRemoveIllnessModeBool && !lookAtRandomCardInAnotherPlayersHandAndSwapModeBool && !moveEventCardToAnotherPlayersPrivateQuartersModeBool && !discardHandToAddIllnessesToOneMaidModeBool && !loveOrEmploymentChoiceBool && !selectPlayerModeBool && !selectEventModeBool && !selectDiscardModeBool && !selectDeckModeBool && !selectChamberMaidModeBool && !decideToDiscardForServingsModeBool && !exchangeModeBool)
+            if (!discard3LoveToRemoveIllnessModeBool && !lookAtRandomCardInAnotherPlayersHandAndSwapModeBool && !moveEventCardToAnotherPlayersPrivateQuartersModeBool && !discardHandToAddIllnessesToOneMaidModeBool && !loveOrEmploymentChoiceBool && !selectPlayerModeBool && !selectEventModeBool && !selectDiscardModeBool && !selectDeckModeBool && !selectChamberMaidModeBool && !decideToDiscardForServingsModeBool && !exchangeModeBool && !playerList[activePlayer].playerIsAI)
             {
                 normalInput(keyboard, keyboardOld, gamepad, gamepadOld);
             }
@@ -1098,7 +1114,7 @@ namespace Tanto_Cuore
             }
             else if (selectEventModeBool)
             {
-                selectEventModeInput(keyboard,gamepad,keyboardOld,gamepadOld);
+                selectEventModeInput(keyboard, gamepad, keyboardOld, gamepadOld);
             }
             else if (selectDiscardModeBool)
             {
@@ -1106,7 +1122,7 @@ namespace Tanto_Cuore
             }
             else if (selectDeckModeBool)
             {
-                selectDeckModeInput(keyboard,keyboardOld,gamepad,gamepadOld);
+                selectDeckModeInput(keyboard, keyboardOld, gamepad, gamepadOld);
             }
             else if (selectChamberMaidModeBool)
             {
@@ -1140,10 +1156,29 @@ namespace Tanto_Cuore
             {
                 discard3LoveToRemoveIllnessModeInput(keyboard, keyboardOld, gamepad, gamepadOld);
             }
+            else if (playerList[activePlayer].playerIsAI && currentPhase == 0)
+            {
+                if (!AI_Control.playBestCard(playerList[activePlayer]))
+                {
+                    advancePhase();
+                }
+            }
+            else if (playerList[activePlayer].playerIsAI && currentPhase == 1)
+            {
+                if (!AI_Control.buyBestCard(playerList[activePlayer], this))
+                {
+                    advancePhase();
+                }
+            }
         }
 
         private void discard3LoveToRemoveIllnessModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.discard3LoveToRemoveIllness(playerList[activePlayer], this);
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
             if (discard3LoveToRemoveIllnessPhase == 0)
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -1244,11 +1279,13 @@ namespace Tanto_Cuore
                     {
                         discard3LoveToRemoveIllnessModeBool = false;
                         illnesses.addCard(playerList[activePlayer].removeIllnessFromMaid(item));
+                        playerList[activePlayer].recheck();
                     }
                     else if (currentSelectOption == 1 && playerList[activePlayer].hasPrivateMaid() && playerList[activePlayer].privateMaid().hasIllness())
                     {
                         illnesses.addCard(playerList[activePlayer].removeIllnessFromPrivateMaid());
                         discard3LoveToRemoveIllnessModeBool = false;
+                        playerList[activePlayer].startTurn();
                     }
                 }
             }
@@ -1256,6 +1293,11 @@ namespace Tanto_Cuore
 
         private void moveEventCardToAnotherPlayerModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld, GameTime gameTime)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.moveEventCardToAnotherPlayer(this, playerList[activePlayer],gameTime);
+                moveEventCardBadHabitMode = true;
+            }
             if (moveEventCardPhase == 0)
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -1475,6 +1517,11 @@ namespace Tanto_Cuore
 
         private void lookAtRandomCardInAnotherPlayersHandAndSwapModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.lookAtRandomCardInAnotherPlayersHandAndSwap(this, playerList[activePlayer]);
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+            }
             if (lookAtRandomCardPhase == 0)
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -1563,6 +1610,11 @@ namespace Tanto_Cuore
 
         private void discardHandForIllnessesInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld, GameTime gameTime)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.discardHandForIllnesss(this, playerList[activePlayer], gameTime);
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+            }
             if (discardHandPhase == 0)
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -1737,7 +1789,6 @@ namespace Tanto_Cuore
                         if (playerList[selectedPlayer].handContains(new Card(14)))
                         {
                             discardHandToAddIllnessesToOneMaidModeBool = false;
-                            illnesses.addCard(new Card(29));
                             showClairMode = true;
                             timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
                         }
@@ -1761,7 +1812,6 @@ namespace Tanto_Cuore
                         if (playerList[selectedPlayer].handContains(new Card(14)))
                         {
                             discardHandToAddIllnessesToOneMaidModeBool = false;
-                            illnesses.addCard(new Card(29));
                             showClairMode = true;
                             timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
                         }
@@ -1786,6 +1836,11 @@ namespace Tanto_Cuore
 
         private void loveOrEmploymentChoiceInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.loveOrEmployment(playerList[activePlayer]);
+                loveOrEmploymentChoiceBool = false;
+            }
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                         (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
                         (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
@@ -1827,6 +1882,11 @@ namespace Tanto_Cuore
 
         private void decicideDiscardModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.decideToDiscardForServingsMode(playerList[activePlayer]);
+                decideToDiscardForServingsModeBool = false;
+            }
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                         (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
                         (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
@@ -1840,7 +1900,7 @@ namespace Tanto_Cuore
                         currentSelectOption = 2;
                     }
                 }
-                else if (decideDiscardPhase == 2)
+                else if (decideDiscardPhase == 1)
                 {
                     currentCardNumber--;
                     if (currentCardNumber < 0)
@@ -1857,7 +1917,7 @@ namespace Tanto_Cuore
                 if (decideDiscardPhase == 0)
                 {
                     currentSelectOption++;
-                    if (currentSelectOption > 1)
+                    if (currentSelectOption > 2)
                     {
                         currentSelectOption = 0;
                     }
@@ -1906,134 +1966,142 @@ namespace Tanto_Cuore
 
         private void selectExchangeModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
-            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
-                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
-                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
-                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            if (playerList[activePlayer].playerIsAI)
             {
-                currentRowNumber--;
-                if (currentRowNumber < 0)
+                AI_Control.selectExchangeModeInput(playerList[activePlayer], this);
+                selectEventModeBool = false;
+            }
+            else
+            {
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                            (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                            (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                            (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
                 {
-                    currentRowNumber = 2;
-                }
-                if (currentRowNumber == 0)
-                {
-                    if (currentCardNumber > 4)
+                    currentRowNumber--;
+                    if (currentRowNumber < 0)
                     {
-                        currentCardNumber = 4;
+                        currentRowNumber = 2;
                     }
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
-                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
-                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
-                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
-            {
-                currentRowNumber++;
-                if (currentRowNumber > 2)
-                {
-                    currentRowNumber = 0;
-                }
-                if (currentRowNumber == 0)
-                {
-                    if (currentCardNumber > 4)
-                    {
-                        currentCardNumber = 4;
-                    }
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
-                    (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
-                    (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
-                    (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
-            {
-                currentCardNumber++;
-                if (currentCardNumber >= 5 && currentRowNumber == 0 || currentCardNumber >= 7)
-                {
-                    currentCardNumber = 0;
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
-                (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
-                (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
-                (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
-            {
-                currentCardNumber--;
-                if (currentCardNumber < 0)
-                {
                     if (currentRowNumber == 0)
                     {
-                        currentCardNumber = 4;
-                    }
-                    else
-                    {
-                        currentCardNumber = 6;
-                    }
-                }
-            }
-
-            if (keyboard.IsKeyDown(Keys.RightControl) && !keyboardOld.IsKeyDown(Keys.RightControl) ||
-                gamepad.IsButtonDown(Buttons.Y) && !gamepadOld.IsButtonDown(Buttons.Y))
-            {
-                showBigCardMode = !showBigCardMode;
-            }
-
-            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
-                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
-            {
-                if (currentCardNumber == 2 && currentRowNumber == 0)
-                {
-                    if (colette.getNumberOfRemainingCards() > 0 && playerList[activePlayer].exchange(colette.lookAtTopCard()))
-                    {
-                        colette.getTopCard();
-                        oneLove.addCard(new Card(33));
-                        currentPhase = 0;
-                        exchangeModeBool = false;
-                    }
-                }
-                if (currentCardNumber == 0 && currentRowNumber == 1)
-                {
-                    if (twoLove.getNumberOfRemainingCards() > 0 && playerList[activePlayer].exchange(twoLove.lookAtTopCard()))
-                    {
-                        twoLove.getTopCard();
-                        oneLove.addCard(new Card(33));
-                        currentPhase = 0;
-                        exchangeModeBool = false;
-                    }
-                }
-                for (int index = 0; index < 10; index++)
-                {
-                    if (index >= 5)
-                    {
-                        if (generalMaids.ElementAt(index).getNumberOfRemainingCards() != 0)
+                        if (currentCardNumber > 4)
                         {
-                            if (currentCardNumber == index - 4 && currentRowNumber == 2 && currentPhase == 1)
+                            currentCardNumber = 4;
+                        }
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+                {
+                    currentRowNumber++;
+                    if (currentRowNumber > 2)
+                    {
+                        currentRowNumber = 0;
+                    }
+                    if (currentRowNumber == 0)
+                    {
+                        if (currentCardNumber > 4)
+                        {
+                            currentCardNumber = 4;
+                        }
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
+                        (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
+                        (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
+                        (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
+                {
+                    currentCardNumber++;
+                    if (currentCardNumber >= 5 && currentRowNumber == 0 || currentCardNumber >= 7)
+                    {
+                        currentCardNumber = 0;
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
+                    (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
+                    (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
+                {
+                    currentCardNumber--;
+                    if (currentCardNumber < 0)
+                    {
+                        if (currentRowNumber == 0)
+                        {
+                            currentCardNumber = 4;
+                        }
+                        else
+                        {
+                            currentCardNumber = 6;
+                        }
+                    }
+                }
+
+                if (keyboard.IsKeyDown(Keys.RightControl) && !keyboardOld.IsKeyDown(Keys.RightControl) ||
+                    gamepad.IsButtonDown(Buttons.Y) && !gamepadOld.IsButtonDown(Buttons.Y))
+                {
+                    showBigCardMode = !showBigCardMode;
+                }
+
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+                {
+                    if (currentCardNumber == 2 && currentRowNumber == 0)
+                    {
+                        if (colette.getNumberOfRemainingCards() > 0 && playerList[activePlayer].exchange(colette.lookAtTopCard()))
+                        {
+                            colette.getTopCard();
+                            oneLove.addCard(new Card(33));
+                            currentPhase = 0;
+                            exchangeModeBool = false;
+                        }
+                    }
+                    if (currentCardNumber == 0 && currentRowNumber == 1)
+                    {
+                        if (twoLove.getNumberOfRemainingCards() > 0 && playerList[activePlayer].exchange(twoLove.lookAtTopCard()))
+                        {
+                            twoLove.getTopCard();
+                            oneLove.addCard(new Card(33));
+                            currentPhase = 0;
+                            exchangeModeBool = false;
+                        }
+                    }
+                    for (int index = 0; index < 10; index++)
+                    {
+                        if (index >= 5)
+                        {
+                            if (generalMaids.ElementAt(index).getNumberOfRemainingCards() != 0)
                             {
-                                if (playerList[activePlayer].exchange(generalMaids.ElementAt(index).lookAtTopCard()))
+                                if (currentCardNumber == index - 4 && currentRowNumber == 2 && currentPhase == 1)
                                 {
-                                    generalMaids.ElementAt(index).getTopCard();
-                                    oneLove.addCard(new Card(33));
-                                    currentPhase = 0;
-                                    exchangeModeBool = false;
+                                    if (playerList[activePlayer].exchange(generalMaids.ElementAt(index).lookAtTopCard()))
+                                    {
+                                        generalMaids.ElementAt(index).getTopCard();
+                                        oneLove.addCard(new Card(33));
+                                        currentPhase = 0;
+                                        exchangeModeBool = false;
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        if (generalMaids.ElementAt(index).getNumberOfRemainingCards() != 0)
+                        else
                         {
-                            if (currentCardNumber == index + 1 && currentRowNumber == 1 && currentPhase == 1)
+                            if (generalMaids.ElementAt(index).getNumberOfRemainingCards() != 0)
                             {
-                                if (playerList[activePlayer].exchange(generalMaids.ElementAt(index).lookAtTopCard()))
+                                if (currentCardNumber == index + 1 && currentRowNumber == 1 && currentPhase == 1)
                                 {
-                                    generalMaids.ElementAt(index).getTopCard();
-                                    oneLove.addCard(new Card(33));
-                                    currentPhase = 0;
-                                    exchangeModeBool = false;
+                                    if (playerList[activePlayer].exchange(generalMaids.ElementAt(index).lookAtTopCard()))
+                                    {
+                                        generalMaids.ElementAt(index).getTopCard();
+                                        oneLove.addCard(new Card(33));
+                                        currentPhase = 0;
+                                        exchangeModeBool = false;
+                                    }
                                 }
                             }
                         }
@@ -2044,132 +2112,141 @@ namespace Tanto_Cuore
 
         private void selectChamberMaidModeInput(KeyboardState keyboard, GamePadState gamepadOld, KeyboardState keyboardOld, GamePadState gamepad, GameTime gameTime)
         {
-            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
-                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
-                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
-                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            if (playerList[activePlayer].playerIsAI)
             {
-                if (selectChamberMaidPhase == 0)
-                {
-                    currentSelectOption--;
-                    if (currentSelectOption < 0)
-                    {
-                        currentSelectOption = numberOfPlayers - 1;
-                    }
-                }
-                else if (selectChamberMaidPhase == 1)
-                {
-                    currentSelectOption--;
-                    if (currentSelectOption < 0)
-                    {
-                        currentSelectOption = 1;
-                    }
-                }
-            }
-            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
-                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
-                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
-                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
-            {
-                if (selectChamberMaidPhase == 0)
-                {
-                    currentSelectOption++;
-                    if (currentSelectOption > numberOfPlayers)
-                    {
-                        currentSelectOption = 0;
-                    }
-                }
-                else if (selectChamberMaidPhase == 1)
-                {
-                    currentSelectOption++;
-                    if (currentSelectOption > 1)
-                    {
-                        currentSelectOption = 0;
-                    }
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
-                    (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
-                    (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
-                    (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
-            {
-                if (selectChamberMaidPhase == 1)
-                {
-                    if (currentSelectOption == 0)
-                    {
-                        item++;
-                        if (item > playerList[selectedPlayer].getNumberOfMaidsInPrivateQuarters())
-                        {
-                            item = 0;
-                        }
-                    }
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
-                (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
-                (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
-                (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
-            {
-                if (selectChamberMaidPhase == 1)
-                {
-                    if (currentSelectOption == 0)
-                    {
-                        item--;
-                        if (item < 0)
-                        {
-                            item = playerList[selectedPlayer].getNumberOfMaidsInPrivateQuarters() - 1;
-                        }
-                    }
-                }
-            }
-
-            if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
-                gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
-            {
+                AI_Control.selectChamberMaidMode(gameTime, playerList, activePlayer, this);
                 selectChamberMaidModeBool = false;
-                illnesses.addCard(new Card(29));
-                playerList[activePlayer].refundIllness();
             }
-
-            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
-                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+            else
             {
-                if ((playerList[currentSelectOption].hasChamberMaids() || playerList[currentSelectOption].hasPrivateMaid()) && selectChamberMaidPhase == 0)
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                            (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                            (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                            (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
                 {
-                    selectChamberMaidPhase++;
-                    selectedPlayer = currentSelectOption;
-                }else if (selectChamberMaidPhase == 1)
-                {
-                    if (currentSelectOption == 0 && playerList[selectedPlayer].hasChamberMaids())
+                    if (selectChamberMaidPhase == 0)
                     {
-                        if (playerList[selectedPlayer].handContains(new Card(14)))
+                        currentSelectOption--;
+                        if (currentSelectOption < 0)
                         {
-                            selectChamberMaidModeBool = false;
-                            illnesses.addCard(new Card(29));
-                            showClairMode = true;
-                            timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
-                        }
-                        else
-                        {
-                            playerList[selectedPlayer].giveIllnessToChamberMaid(item);
-                            selectChamberMaidModeBool = false;
+                            currentSelectOption = numberOfPlayers - 1;
                         }
                     }
-                    else if (currentSelectOption == 1 && playerList[selectedPlayer].hasPrivateMaid())
+                    else if (selectChamberMaidPhase == 1)
                     {
-                        if (playerList[selectedPlayer].handContains(new Card(14)))
+                        currentSelectOption--;
+                        if (currentSelectOption < 0)
                         {
-                            selectChamberMaidModeBool = false;
-                            illnesses.addCard(new Card(29));
-                            showClairMode = true;
-                            timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
+                            currentSelectOption = 1;
                         }
-                        else
+                    }
+                }
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+                {
+                    if (selectChamberMaidPhase == 0)
+                    {
+                        currentSelectOption++;
+                        if (currentSelectOption > numberOfPlayers)
                         {
-                            playerList[selectedPlayer].giveIllnessToPrivateMaid();
-                            selectChamberMaidModeBool = false;
+                            currentSelectOption = 0;
+                        }
+                    }
+                    else if (selectChamberMaidPhase == 1)
+                    {
+                        currentSelectOption++;
+                        if (currentSelectOption > 1)
+                        {
+                            currentSelectOption = 0;
+                        }
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
+                        (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
+                        (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
+                        (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
+                {
+                    if (selectChamberMaidPhase == 1)
+                    {
+                        if (currentSelectOption == 0)
+                        {
+                            item++;
+                            if (item > playerList[selectedPlayer].getNumberOfMaidsInPrivateQuarters())
+                            {
+                                item = 0;
+                            }
+                        }
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
+                    (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
+                    (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
+                {
+                    if (selectChamberMaidPhase == 1)
+                    {
+                        if (currentSelectOption == 0)
+                        {
+                            item--;
+                            if (item < 0)
+                            {
+                                item = playerList[selectedPlayer].getNumberOfMaidsInPrivateQuarters() - 1;
+                            }
+                        }
+                    }
+                }
+
+                if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
+                    gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
+                {
+                    selectChamberMaidModeBool = false;
+                    illnesses.addCard(new Card(29));
+                    playerList[activePlayer].refundIllness();
+                }
+
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+                {
+                    if ((playerList[currentSelectOption].hasChamberMaids() || playerList[currentSelectOption].hasPrivateMaid()) && selectChamberMaidPhase == 0)
+                    {
+                        selectChamberMaidPhase++;
+                        selectedPlayer = currentSelectOption;
+                    }
+                    else if (selectChamberMaidPhase == 1)
+                    {
+                        if (currentSelectOption == 0 && playerList[selectedPlayer].hasChamberMaids())
+                        {
+                            if (playerList[selectedPlayer].handContains(new Card(14)))
+                            {
+                                selectChamberMaidModeBool = false;
+                                illnesses.addCard(new Card(29));
+                                showClairMode = true;
+                                timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
+                            }
+                            else
+                            {
+                                playerList[selectedPlayer].giveIllnessToChamberMaid(item);
+                                selectChamberMaidModeBool = false;
+                            }
+                        }
+                        else if (currentSelectOption == 1 && playerList[selectedPlayer].hasPrivateMaid())
+                        {
+                            if (playerList[selectedPlayer].handContains(new Card(14)))
+                            {
+                                selectChamberMaidModeBool = false;
+                                illnesses.addCard(new Card(29));
+                                showClairMode = true;
+                                timeModeStarted = gameTime.TotalGameTime.TotalSeconds;
+                            }
+                            else
+                            {
+                                playerList[selectedPlayer].giveIllnessToPrivateMaid();
+                                selectChamberMaidModeBool = false;
+                            }
                         }
                     }
                 }
@@ -2418,10 +2495,6 @@ namespace Tanto_Cuore
                             if (privateMaidPile.getNumberOfRemainingCards() == 0)
                             {
                                 emptiedPiles++;
-                                if (emptiedPiles == 2)
-                                {
-                                    endGame();
-                                }
                             }
                         }
                     }
@@ -2434,10 +2507,6 @@ namespace Tanto_Cuore
                             if (privateMaidPile.getNumberOfRemainingCards() == 0)
                             {
                                 emptiedPiles++;
-                                if (emptiedPiles == 2)
-                                {
-                                    endGame();
-                                }
                             }
                         }
                     }
@@ -2460,6 +2529,11 @@ namespace Tanto_Cuore
 
         private void selectPlayerModeInput(KeyboardState keyboardOld, GamePadState gamepadOld, KeyboardState keyboard, GamePadState gamepad, GameTime gameTime)
         {
+            if (playerList[activePlayer].playerIsAI)
+            {
+                AI_Control.selectPlayerInput(playerList[activePlayer], this, playerList, activePlayer, gameTime);
+                selectPlayerModeBool = false;
+            }
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                         (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
                         (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
@@ -2514,81 +2588,89 @@ namespace Tanto_Cuore
 
         private void selectEventModeInput(KeyboardState keyboard, GamePadState gamepad, KeyboardState keyboardOld, GamePadState gamepadOld)
         {
-            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
-                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
-                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
-                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            if (playerList[activePlayer].playerIsAI)
             {
-                currentSelectOption--;
-                if (currentSelectOption < 0)
-                {
-                    currentSelectOption = 2;
-                }
-            }
-            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
-                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
-                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
-                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
-            {
-                currentSelectOption++;
-                if (currentSelectOption > 2)
-                {
-                    currentSelectOption = 0;
-                }
-            }
-
-            if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
-                gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
-            {
+                AI_Control.removeBestEvent(playerList[activePlayer], this);
                 selectEventModeBool = false;
             }
-
-            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
-                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+            else
             {
-                if (playerList[activePlayer].hasChamberMaids() && playerList[activePlayer].privateMaidAt(item).hasIllness() && currentSelectOption == 0)
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                            (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                            (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                            (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
                 {
-                    selectEventModeBool = false;
-                    illnesses.addCard(playerList[activePlayer].removeIllnessFromMaid(item));
-                }
-                else if (playerList[activePlayer].hasPrivateMaid() && playerList[activePlayer].privateMaid().hasIllness() && currentSelectOption == 1)
-                {
-                    selectEventModeBool = false;
-                    illnesses.addCard(playerList[activePlayer].removeIllnessFromPrivateMaid());
-                }
-                else if (currentSelectOption == 2 && playerList[activePlayer].hasBadHabit())
-                {
-                    selectEventModeBool = false;
-                    badHabits.addCard(playerList[activePlayer].removeBadHabit());
-                }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
-                    (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
-                    (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
-                    (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
-            {
-                if (currentSelectOption == 0)
-                {
-                    item++;
-                    if (item > playerList[activePlayer].getNumberOfMaidsInPrivateQuarters())
+                    currentSelectOption--;
+                    if (currentSelectOption < 0)
                     {
-                        item = 0;
+                        currentSelectOption = 2;
                     }
                 }
-            }
-
-            if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
-                (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
-                (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
-                (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
-            {
-                if (currentSelectOption == 0)
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
                 {
-                    item--;
-                    if (item < 0)
+                    currentSelectOption++;
+                    if (currentSelectOption > 2)
                     {
-                        item = playerList[activePlayer].getNumberOfMaidsInPrivateQuarters() - 1;
+                        currentSelectOption = 0;
+                    }
+                }
+
+                if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
+                    gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
+                {
+                    selectEventModeBool = false;
+                }
+
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+                {
+                    if (playerList[activePlayer].hasChamberMaids() && playerList[activePlayer].privateMaidAt(item).hasIllness() && currentSelectOption == 0)
+                    {
+                        selectEventModeBool = false;
+                        illnesses.addCard(playerList[activePlayer].removeIllnessFromMaid(item));
+                    }
+                    else if (playerList[activePlayer].hasPrivateMaid() && playerList[activePlayer].privateMaid().hasIllness() && currentSelectOption == 1)
+                    {
+                        selectEventModeBool = false;
+                        illnesses.addCard(playerList[activePlayer].removeIllnessFromPrivateMaid());
+                    }
+                    else if (currentSelectOption == 2 && playerList[activePlayer].hasBadHabit())
+                    {
+                        selectEventModeBool = false;
+                        badHabits.addCard(playerList[activePlayer].removeBadHabit());
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
+                        (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
+                        (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
+                        (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
+                {
+                    if (currentSelectOption == 0)
+                    {
+                        item++;
+                        if (item > playerList[activePlayer].getNumberOfMaidsInPrivateQuarters())
+                        {
+                            item = 0;
+                        }
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
+                    (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
+                    (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
+                {
+                    if (currentSelectOption == 0)
+                    {
+                        item--;
+                        if (item < 0)
+                        {
+                            item = playerList[activePlayer].getNumberOfMaidsInPrivateQuarters() - 1;
+                        }
                     }
                 }
             }
@@ -2596,474 +2678,593 @@ namespace Tanto_Cuore
 
         private void selectDiscardModeInput(KeyboardState keyboardOld, KeyboardState keyboard, GamePadState gamepadOld, GamePadState gamepad)
         {
-            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
-                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
-                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
-                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            if (playerList[activePlayer].playerIsAI && discardPhase <= 1)
             {
-                if (discardPhase == 0)
+                if (AI_Control.discardCardToMakeOthersDiscard(playerList[activePlayer]))
                 {
-                    currentSelectOption--;
-                    if (currentSelectOption < 0)
-                    {
-                        currentSelectOption = 1;
-                    }
+                    AI_Control.discardWorstCard(playerList[activePlayer]);
+                    discardPhase += 2;
                 }
-                else if (discardPhase == 1)
-                {
-                    currentCardNumber--;
-                    if (currentCardNumber < 0)
-                    {
-                        currentCardNumber = playerList[activePlayer].getNumberOfCardsInHand() - 1;
-                    }
-                }
-
-                else if (discardPhase == 2)
-                {
-                    currentCardNumber--;
-                    if (currentCardNumber < 0)
-                    {
-                        if (activePlayer == 0)
-                        {
-                            currentCardNumber = playerList[1].getNumberOfCardsInHand() - 1;
-                        }
-                        else
-                        {
-                            currentCardNumber = playerList[0].getNumberOfCardsInHand() - 1;
-                        }
-                    }
-                }
-
-                else if (discardPhase == 3)
-                {
-                    currentCardNumber--;
-                    if (currentCardNumber < 0)
-                    {
-                        if (activePlayer == 0 || activePlayer == 1)
-                        {
-                            currentCardNumber = playerList[2].getNumberOfCardsInHand() - 1;
-                        }
-                        else
-                        {
-                            currentCardNumber = playerList[1].getNumberOfCardsInHand() - 1;
-                        }
-                    }
-                }
-
-
-
-                else if (discardPhase == 4)
-                {
-                    currentCardNumber--;
-                    if (currentCardNumber < 0)
-                    {
-                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                        {
-                            currentCardNumber = playerList[3].getNumberOfCardsInHand() - 1;
-                        }
-                        else
-                        {
-                            currentCardNumber = playerList[2].getNumberOfCardsInHand() - 1;
-                        }
-                    }
-                }
-            }
-            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
-                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
-                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
-                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
-            {
-                if (discardPhase == 0)
-                {
-                    currentSelectOption++;
-                    if (currentSelectOption > 1)
-                    {
-                        currentSelectOption = 0;
-                    }
-                }
-                else if (discardPhase == 1)
-                {
-                    currentCardNumber++;
-                    if (currentCardNumber >= playerList[activePlayer].getNumberOfCardsInHand())
-                    {
-                        currentCardNumber = 0;
-                    }
-                }
-
-                else if (discardPhase == 2)
-                {
-                    currentCardNumber++;
-                    if (activePlayer == 0)
-                    {
-                        if (currentCardNumber >= playerList[1].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                    else
-                    {
-                        if (currentCardNumber >= playerList[0].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                }
-
-                else if (discardPhase == 3)
-                {
-                    currentCardNumber++;
-                    if (activePlayer == 0 || activePlayer == 1)
-                    {
-                        if (currentCardNumber >= playerList[2].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                    else
-                    {
-                        if (currentCardNumber >= playerList[1].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                }
-
-                else if (discardPhase == 4)
-                {
-                    currentCardNumber++;
-                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 3)
-                    {
-                        if (currentCardNumber >= playerList[3].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                    else
-                    {
-                        if (currentCardNumber >= playerList[2].getNumberOfCardsInHand())
-                        {
-                            currentCardNumber = 0;
-                        }
-                    }
-                }
-            }
-
-            if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
-                gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
-            {
-                if (discardPhase == 1)
-                {
-                    discardPhase = 0;
-                }
-            }
-
-            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
-                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
-            {
-                if (discardPhase == 0 && currentSelectOption == 0)
-                {
-                    discardPhase++;
-
-                }
-                else if (discardPhase == 0 && currentSelectOption == 1)
+                else
                 {
                     selectDiscardModeBool = false;
                 }
-                else if (discardPhase == 1)
+            }
+            else
+            {
+                if (discardPhase == 2)
                 {
-                    playerList[activePlayer].discardCard(currentCardNumber);
-                    discardPhase++;
                     if (activePlayer == 0)
                     {
-                        if (playerList[1].getNumberOfCardsInHand() <= 4)
+                        if (playerList[1].playerIsAI)
                         {
+                            if (playerList[1].getNumberOfCardsInHand() >= 4)
+                            {
+                                AI_Control.discardWorstCard(playerList[1]);
+                            }
                             discardPhase++;
                             if (discardPhase - 1 == numberOfPlayers)
                             {
                                 selectDiscardModeBool = false;
-                            }
-                            if (activePlayer == 0 || activePlayer == 1)
-                            {
-                                if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                                    {
-                                        if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                                    {
-                                        if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
                     else
                     {
-                        if (playerList[0].getNumberOfCardsInHand() <= 4)
+                        if (playerList[0].playerIsAI)
                         {
+                            if (playerList[0].getNumberOfCardsInHand() >= 4)
+                            {
+                                AI_Control.discardWorstCard(playerList[0]);
+                            }
                             discardPhase++;
                             if (discardPhase - 1 == numberOfPlayers)
                             {
                                 selectDiscardModeBool = false;
-                            }
-                            if (activePlayer == 0 || activePlayer == 1)
-                            {
-                                if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                                    {
-                                        if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                                    {
-                                        if (playerList[3].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (playerList[2].getNumberOfCardsInHand() <= 4)
-                                        {
-                                            discardPhase++;
-                                            if (discardPhase - 1 == numberOfPlayers)
-                                            {
-                                                selectDiscardModeBool = false;
-                                            }
-                                        }
-                                    }
-                                }
+                                return;
                             }
                         }
                     }
                 }
-                else if (discardPhase == 2)
+                if (discardPhase == 3)
                 {
-                    if (activePlayer == 0)
-                    {
-                        playerList[1].discardCard(currentCardNumber);
-                    }
-                    else
-                    {
-                        playerList[0].discardCard(currentCardNumber);
-                    }
-                    discardPhase++;
-                    if (discardPhase - 1 == numberOfPlayers)
-                    {
-                        selectDiscardModeBool = false;
-                    }
                     if (activePlayer == 0 || activePlayer == 1)
                     {
-                        if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
+                        if (playerList[2].playerIsAI)
                         {
+                            if (playerList[2].getNumberOfCardsInHand() >= 4)
+                            {
+                                AI_Control.discardWorstCard(playerList[2]);
+                            }
                             discardPhase++;
                             if (discardPhase - 1 == numberOfPlayers)
                             {
                                 selectDiscardModeBool = false;
-                            }
-                            if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                            {
-                                if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                }
+                                return;
                             }
                         }
                     }
                     else
                     {
-                        if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
+                        if (playerList[1].playerIsAI)
                         {
+                            if (playerList[1].getNumberOfCardsInHand() >= 4)
+                            {
+                                AI_Control.discardWorstCard(playerList[1]);
+                            }
                             discardPhase++;
                             if (discardPhase - 1 == numberOfPlayers)
                             {
                                 selectDiscardModeBool = false;
+                                return;
                             }
-                            if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                        }
+                    }
+                }
+                if (discardPhase == 4)
+                {
+                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                    {
+                        if (playerList[3].playerIsAI)
+                        {
+                            if (playerList[3].getNumberOfCardsInHand() >= 4)
                             {
-                                if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                }
+                                AI_Control.discardWorstCard(playerList[3]);
+                            }
+                            discardPhase++;
+                            if (discardPhase - 1 == numberOfPlayers)
+                            {
+                                selectDiscardModeBool = false;
+                                return;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (playerList[2].playerIsAI)
+                        {
+                            if (playerList[2].getNumberOfCardsInHand() >= 4)
+                            {
+                                AI_Control.discardWorstCard(playerList[2]);
+                            }
+                            discardPhase++;
+                            if (discardPhase - 1 == numberOfPlayers)
+                            {
+                                selectDiscardModeBool = false;
+                                return;
+                            }
+                        }
+                    }
+                }
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                            (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                            (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                            (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+                {
+                    if (discardPhase == 0)
+                    {
+                        currentSelectOption--;
+                        if (currentSelectOption < 0)
+                        {
+                            currentSelectOption = 1;
+                        }
+                    }
+                    else if (discardPhase == 1)
+                    {
+                        currentCardNumber--;
+                        if (currentCardNumber < 0)
+                        {
+                            currentCardNumber = playerList[activePlayer].getNumberOfCardsInHand() - 1;
+                        }
+                    }
+
+                    else if (discardPhase == 2)
+                    {
+                        currentCardNumber--;
+                        if (currentCardNumber < 0)
+                        {
+                            if (activePlayer == 0)
+                            {
+                                currentCardNumber = playerList[1].getNumberOfCardsInHand() - 1;
                             }
                             else
                             {
-                                if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
-                                {
-                                    discardPhase++;
-                                    if (discardPhase - 1 == numberOfPlayers)
-                                    {
-                                        selectDiscardModeBool = false;
-                                    }
-                                }
+                                currentCardNumber = playerList[0].getNumberOfCardsInHand() - 1;
+                            }
+                        }
+                    }
+
+                    else if (discardPhase == 3)
+                    {
+                        currentCardNumber--;
+                        if (currentCardNumber < 0)
+                        {
+                            if (activePlayer == 0 || activePlayer == 1)
+                            {
+                                currentCardNumber = playerList[2].getNumberOfCardsInHand() - 1;
+                            }
+                            else
+                            {
+                                currentCardNumber = playerList[1].getNumberOfCardsInHand() - 1;
+                            }
+                        }
+                    }
+
+
+
+                    else if (discardPhase == 4)
+                    {
+                        currentCardNumber--;
+                        if (currentCardNumber < 0)
+                        {
+                            if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                            {
+                                currentCardNumber = playerList[3].getNumberOfCardsInHand() - 1;
+                            }
+                            else
+                            {
+                                currentCardNumber = playerList[2].getNumberOfCardsInHand() - 1;
+                            }
+                        }
+                    }
+                }
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+                {
+                    if (discardPhase == 0)
+                    {
+                        currentSelectOption++;
+                        if (currentSelectOption > 1)
+                        {
+                            currentSelectOption = 0;
+                        }
+                    }
+                    else if (discardPhase == 1)
+                    {
+                        currentCardNumber++;
+                        if (currentCardNumber >= playerList[activePlayer].getNumberOfCardsInHand())
+                        {
+                            currentCardNumber = 0;
+                        }
+                    }
+
+                    else if (discardPhase == 2)
+                    {
+                        currentCardNumber++;
+                        if (activePlayer == 0)
+                        {
+                            if (currentCardNumber >= playerList[1].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
+                            }
+                        }
+                        else
+                        {
+                            if (currentCardNumber >= playerList[0].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
+                            }
+                        }
+                    }
+
+                    else if (discardPhase == 3)
+                    {
+                        currentCardNumber++;
+                        if (activePlayer == 0 || activePlayer == 1)
+                        {
+                            if (currentCardNumber >= playerList[2].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
+                            }
+                        }
+                        else
+                        {
+                            if (currentCardNumber >= playerList[1].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
+                            }
+                        }
+                    }
+
+                    else if (discardPhase == 4)
+                    {
+                        currentCardNumber++;
+                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 3)
+                        {
+                            if (currentCardNumber >= playerList[3].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
+                            }
+                        }
+                        else
+                        {
+                            if (currentCardNumber >= playerList[2].getNumberOfCardsInHand())
+                            {
+                                currentCardNumber = 0;
                             }
                         }
                     }
                 }
 
-                else if (discardPhase == 3)
+                if (keyboard.IsKeyDown(Keys.Back) && !keyboardOld.IsKeyDown(Keys.Back) ||
+                    gamepad.IsButtonDown(Buttons.B) && !gamepadOld.IsButtonDown(Buttons.B))
                 {
-                    if (activePlayer == 0 || activePlayer == 1)
+                    if (discardPhase == 1)
                     {
-                        playerList[2].discardCard(currentCardNumber);
-                    }
-                    else
-                    {
-                        playerList[3].discardCard(currentCardNumber);
-                    }
-                    discardPhase++;
-                    if (discardPhase - 1 == numberOfPlayers)
-                    {
-                        selectDiscardModeBool = false;
-                    }
-                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
-                    {
-                        if (playerList[3].getNumberOfCardsInHand() <= 4)
-                        {
-                            discardPhase++;
-                            if (discardPhase - 1 == numberOfPlayers)
-                            {
-                                selectDiscardModeBool = false;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (playerList[2].getNumberOfCardsInHand() <= 4)
-                        {
-                            discardPhase++;
-                            if (discardPhase - 1 == numberOfPlayers)
-                            {
-                                selectDiscardModeBool = false;
-                            }
-                        }
+                        discardPhase = 0;
                     }
                 }
 
-                else if (discardPhase == 4)
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
                 {
-                    if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                    if (discardPhase == 0 && currentSelectOption == 0)
                     {
-                        playerList[3].discardCard(currentCardNumber);
+                        discardPhase++;
+
                     }
-                    else
-                    {
-                        playerList[2].discardCard(currentCardNumber);
-                    }
-                    discardPhase++;
-                    if (discardPhase - 1 == numberOfPlayers)
+                    else if (discardPhase == 0 && currentSelectOption == 1)
                     {
                         selectDiscardModeBool = false;
+                    }
+                    else if (discardPhase == 1)
+                    {
+                        playerList[activePlayer].discardCard(currentCardNumber);
+                        discardPhase++;
+                        if (activePlayer == 0)
+                        {
+                            if (playerList[1].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                                if (activePlayer == 0 || activePlayer == 1)
+                                {
+                                    if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                        {
+                                            if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                        {
+                                            if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (playerList[0].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                                if (activePlayer == 0 || activePlayer == 1)
+                                {
+                                    if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                        {
+                                            if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                        {
+                                            if (playerList[3].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (playerList[2].getNumberOfCardsInHand() <= 4)
+                                            {
+                                                discardPhase++;
+                                                if (discardPhase - 1 == numberOfPlayers)
+                                                {
+                                                    selectDiscardModeBool = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (discardPhase == 2)
+                    {
+                        if (activePlayer == 0)
+                        {
+                            playerList[1].discardCard(currentCardNumber);
+                        }
+                        else
+                        {
+                            playerList[0].discardCard(currentCardNumber);
+                        }
+                        discardPhase++;
+                        if (discardPhase - 1 == numberOfPlayers)
+                        {
+                            selectDiscardModeBool = false;
+                        }
+                        if (activePlayer == 0 || activePlayer == 1)
+                        {
+                            if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                                if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                {
+                                    if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                                if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                                {
+                                    if (numberOfPlayers > 3 && playerList[3].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (numberOfPlayers > 2 && playerList[2].getNumberOfCardsInHand() <= 4)
+                                    {
+                                        discardPhase++;
+                                        if (discardPhase - 1 == numberOfPlayers)
+                                        {
+                                            selectDiscardModeBool = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else if (discardPhase == 3)
+                    {
+                        if (activePlayer == 0 || activePlayer == 1)
+                        {
+                            playerList[2].discardCard(currentCardNumber);
+                        }
+                        else
+                        {
+                            playerList[3].discardCard(currentCardNumber);
+                        }
+                        discardPhase++;
+                        if (discardPhase - 1 == numberOfPlayers)
+                        {
+                            selectDiscardModeBool = false;
+                        }
+                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                        {
+                            if (playerList[3].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (playerList[2].getNumberOfCardsInHand() <= 4)
+                            {
+                                discardPhase++;
+                                if (discardPhase - 1 == numberOfPlayers)
+                                {
+                                    selectDiscardModeBool = false;
+                                }
+                            }
+                        }
+                    }
+
+                    else if (discardPhase == 4)
+                    {
+                        if (activePlayer == 0 || activePlayer == 1 || activePlayer == 2)
+                        {
+                            playerList[3].discardCard(currentCardNumber);
+                        }
+                        else
+                        {
+                            playerList[2].discardCard(currentCardNumber);
+                        }
+                        discardPhase++;
+                        if (discardPhase - 1 == numberOfPlayers)
+                        {
+                            selectDiscardModeBool = false;
+                        }
                     }
                 }
             }
@@ -3071,70 +3272,78 @@ namespace Tanto_Cuore
 
         private void selectDeckModeInput(KeyboardState keyboard, KeyboardState keyboardOld, GamePadState gamepad, GamePadState gamepadOld)
         {
-            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
-                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
-                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
-                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            if (playerList[activePlayer].playerIsAI)
             {
-                if (deckPhase == 0)
-                {
-                    currentSelectOption--;
-                    if (currentSelectOption < 0)
-                    {
-                        currentSelectOption = numberOfPlayers - 1;
-                    }
-                }
-                else if (deckPhase == 1)
-                {
-                    currentSelectOption--;
-                    if (currentSelectOption < 0)
-                    {
-                        currentSelectOption = 1;
-                    }
-                }
+                AI_Control.selectDeckMode(playerList, activePlayer);
+                selectDeckModeBool = false;
             }
-            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
-                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
-                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
-                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+            else
             {
-                if (deckPhase == 0)
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                            (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                            (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                            (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
                 {
-                    currentSelectOption++;
-                    if (currentSelectOption > numberOfPlayers)
+                    if (deckPhase == 0)
                     {
-                        currentSelectOption = 0;
+                        currentSelectOption--;
+                        if (currentSelectOption < 0)
+                        {
+                            currentSelectOption = numberOfPlayers - 1;
+                        }
+                    }
+                    else if (deckPhase == 1)
+                    {
+                        currentSelectOption--;
+                        if (currentSelectOption < 0)
+                        {
+                            currentSelectOption = 1;
+                        }
                     }
                 }
-                else if (deckPhase == 1)
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
                 {
-                    currentSelectOption++;
-                    if (currentSelectOption > 1)
+                    if (deckPhase == 0)
                     {
-                        currentSelectOption = 0;
+                        currentSelectOption++;
+                        if (currentSelectOption > numberOfPlayers)
+                        {
+                            currentSelectOption = 0;
+                        }
+                    }
+                    else if (deckPhase == 1)
+                    {
+                        currentSelectOption++;
+                        if (currentSelectOption > 1)
+                        {
+                            currentSelectOption = 0;
+                        }
                     }
                 }
-            }
 
-            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
-                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
-            {
-                if (deckPhase == 0)
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
                 {
-                    if (playerList[currentSelectOption].hasCardsInDeck())
+                    if (deckPhase == 0)
                     {
-                        selectedPlayer = currentSelectOption;
-                        currentSelectOption = 0;
-                        deckPhase++;
+                        if (playerList[currentSelectOption].hasCardsInDeck())
+                        {
+                            selectedPlayer = currentSelectOption;
+                            currentSelectOption = 0;
+                            deckPhase++;
+                        }
                     }
-                }
-                else if (deckPhase == 1)
-                {
-                    if (currentSelectOption == 0)
+                    else if (deckPhase == 1)
                     {
-                        playerList[selectedPlayer].discardTopCardOfDeck();
+                        if (currentSelectOption == 0)
+                        {
+                            playerList[selectedPlayer].discardTopCardOfDeck();
+                        }
+                        selectDeckModeBool = false;
                     }
-                    selectDeckModeBool = false;
                 }
             }
         }

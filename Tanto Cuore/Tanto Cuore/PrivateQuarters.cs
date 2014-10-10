@@ -317,5 +317,15 @@ namespace Tanto_Cuore
             VP.VP += VictoryPoints;
             return VP;
         }
+
+        internal int getNumberOfBadHabits()
+        {
+            return badHabits.Count;
+        }
+
+        internal bool privateMaidHasIllness()
+        {
+            return privateMaid().hasIllness();
+        }
     }
 }

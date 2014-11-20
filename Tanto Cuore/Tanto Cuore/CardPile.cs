@@ -64,5 +64,35 @@ namespace Tanto_Cuore
         {
             pile.Add(card);
         }
+
+        internal Card lookAtCardAt(int index)
+        {
+            return pile.ElementAt(index);
+        }
+
+        internal void setNumberOfCardsTo(int p, int cardNumber)
+        {
+            if (pile.Count == 0 && pile.Count < p)
+            {
+                for (int index = 0; index < p; index++)
+                {
+                    pile.Add(new Card(cardNumber));
+                }
+            }
+            else if (pile.Count < p)
+            {
+                for (int index = 0; index < p - pile.Count; index++)
+                {
+                    pile.Add(pile.ElementAt(0));
+                }
+            }
+            else if (pile.Count > p)
+            {
+                for (int index = 0; index < pile.Count - p; index++)
+                {
+                    pile.RemoveAt(0);
+                }
+            }
+        }
     }
 }

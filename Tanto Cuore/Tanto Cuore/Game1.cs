@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if WINDOWS
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
+using System.Reflection;
+#endif
+using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
@@ -37,12 +42,20 @@ namespace Tanto_Cuore
         int currentSinglePlayerSetupMenuOption = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of ai, 4 start, 5 return.
         int numberOfSinglePlayerSetupMenuOptions = 6;
         String[] singlePlayerSetupMenuOptionsStrings;
-        int currentMultiPlayerSetupMenuOption = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of players, 4 number of ai, 54 start, 6 return.
+        int currentMultiPlayerSetupMenuOption = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of players, 4 number of ai, 5 start, 6 return.
         int numberOfMultiPlayerSetupMenuOptions = 7;
         String[] multiPlayerSetupMenuOptionsStrings;
         int currentMultiPlayerModeOption = 0;
         int numberOfMultiPlayerModeOptions = 4;
         String[] multiPlayerModeMenuOptions;
+#if WINDOWS
+        int currentMultiPlayerSetupMenuOptionServer = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of players, 4 number of ai, 5 start, 6 return.
+        int numberOfMultiPlayerSetupOptionsServer = 7; 
+        String[] multiPlayerSetupMenuOptionsServer;
+        int currentMultiPlayerSetupMenuOptionClient = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of players, 4 number of ai, 5 send ready signal, 6 return.
+        int numberOfMultiPlayerSetupOptionsClient = 7; 
+        String[] multiPlayerSetupMenuOptionsClient;
+#endif
         bool beginnerMode = true;
         bool randomMode = false;
         PlayArea playArea;
@@ -53,14 +66,24 @@ namespace Tanto_Cuore
         String[] generalMaidNames;
         int selectedMaid = 0;
         int replacementMaid = 0;
-        IPHostEntry ipHostInfo;
-        IPAddress ipAddress;
-        IPEndPoint localEndPoint;
-        IPEndPoint remoteEP;
+#if WINDOWS
+        internal static IPHostEntry ipHostInfo;
+        internal static IPAddress ipAddress;
+        internal static IPEndPoint localEndPoint;
+        internal static IPEndPoint remoteEP;
         GamerServicesComponent GSC;
         IAsyncResult KeyboardResult;
-        Socket sender;
-        Socket listener;
+        internal static Socket sender;
+        internal static Socket listener;
+        internal static Socket handler;
+        internal static string data = null;
+        internal static byte[] dataBuffer;
+        bool ready = false;
+        bool done = false;
+        List<Song> songs;
+        Random rand;
+        bool gameStart = false;
+#endif
 
         static public Texture2D[] cardPicturesFull;
         static public Texture2D[] cardPicturesMini;
@@ -92,6 +115,24 @@ namespace Tanto_Cuore
         /// </summary>
         protected override void Initialize()
         {
+#if WINDOWS
+            string[] filePaths = Directory.GetFiles(@"Content\Music\", "*.mp3");
+            songs = new List<Song>();
+            foreach (string filepath in filePaths)
+            {
+                var ctor = typeof(Song).GetConstructor(
+                    BindingFlags.NonPublic | BindingFlags.Instance, null,
+                    new[] { typeof(string), typeof(string), typeof(int) }, null);
+                Song song = (Song)ctor.Invoke(new object[] { filepath, @filepath, 0 });
+                songs.Add(song);
+            }
+            if (songs.Count != 0)
+            {
+                rand = new Random();
+                int songNum = rand.Next(songs.Count);
+                MediaPlayer.Play(songs.ElementAt(songNum));
+            }
+#endif
             gamepadOld = new GamePadState();
             mouseOld = new MouseState();
             keyboardOld = new KeyboardState();
@@ -115,11 +156,36 @@ namespace Tanto_Cuore
             multiPlayerSetupMenuOptionsStrings[4] = "Number of AI Players: ";
             multiPlayerSetupMenuOptionsStrings[5] = "Start Multi Player";
             multiPlayerSetupMenuOptionsStrings[6] = "Return";
+#if WINDOWS
+            multiPlayerSetupMenuOptionsServer = new String[numberOfMultiPlayerSetupOptionsServer];
+            multiPlayerSetupMenuOptionsServer[0] = "Beginner Mode";
+            multiPlayerSetupMenuOptionsServer[1] = "Random Mode";
+            multiPlayerSetupMenuOptionsServer[2] = "Edit General Maids";
+            multiPlayerSetupMenuOptionsServer[3] = "Number of Players: ";
+            multiPlayerSetupMenuOptionsServer[4] = "Number of AI Players: ";
+            multiPlayerSetupMenuOptionsServer[5] = "Start Multi Player";
+            multiPlayerSetupMenuOptionsServer[6] = "Return";
+            multiPlayerSetupMenuOptionsClient = new String[numberOfMultiPlayerSetupOptionsClient];
+            multiPlayerSetupMenuOptionsClient[0] = "Beginner Mode";
+            multiPlayerSetupMenuOptionsClient[1] = "Random Mode";
+            multiPlayerSetupMenuOptionsClient[2] = "Edit General Maids";
+            multiPlayerSetupMenuOptionsClient[3] = "Number of Players: ";
+            multiPlayerSetupMenuOptionsClient[4] = "Number of AI Players: ";
+            multiPlayerSetupMenuOptionsClient[5] = "Send Ready Signal";
+            multiPlayerSetupMenuOptionsClient[6] = "Leave Game";
             multiPlayerModeMenuOptions = new String[numberOfMultiPlayerModeOptions];
+#else
+            multiPlayerModeMenuOptions = new String[2];
+#endif
             multiPlayerModeMenuOptions[0] = "Local Game";
+#if WINDOWS
             multiPlayerModeMenuOptions[1] = "Host Game";
             multiPlayerModeMenuOptions[2] = "Join Game";
             multiPlayerModeMenuOptions[3] = "Return";
+#else
+            
+            multiPlayerModeMenuOptions[1] = "Return";
+#endif
             cardPicturesFull = new Texture2D[33];
             cardPicturesMini = new Texture2D[33];
             generalMaids = new List<Card>();
@@ -200,6 +266,13 @@ namespace Tanto_Cuore
             {
                 screenNumber = resultsScreen;
             }
+#if WINDOWS
+            if (songs.Count != 0 && MediaPlayer.State == MediaState.Stopped)
+            {
+                int songNum = rand.Next(songs.Count);
+                MediaPlayer.Play(songs.ElementAt(songNum));
+            }
+#endif
             base.Update(gameTime);
         }
 
@@ -396,80 +469,157 @@ namespace Tanto_Cuore
                     }
                 }
             }
+#if WINDOWS
             else if (stage == 2)
             {
                 //spriteBatch.Draw(mainMenu, Vector2.Zero, Color.White);
                 //spriteBatch.Draw(mainMenu, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - mainMenu.Width / 2, 100), Color.White);
                 spriteBatch.DrawString(font, "Multi Player Setup Menu", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Multi Player Setup Menu").X / 2, 125), Color.White);
-                spriteBatch.DrawString(font, "IP Adress: " + ipAddress, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("IP Adress: " + ipAddress).X / 2, 150), Color.White);
+                spriteBatch.DrawString(font, "IP Address: " + ipAddress, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("IP Adress: " + ipAddress).X / 2, 150), Color.White);
 
                 //For each menu selection, if the current menu selection is selected draw it red, else draw it white.
                 for (int i = 0; i < numberOfMultiPlayerSetupMenuOptions; i++)
                 {
-                    if (currentMultiPlayerSetupMenuOption == i)
+                    if (currentMultiPlayerSetupMenuOptionServer == i)
                     {
                         if (i == 0 && beginnerMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " On").X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " On").X / 2, 175 + i * 25), Color.Red);
                         }
                         else if (i == 0 && !beginnerMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " Off").X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " Off").X / 2, 175 + i * 25), Color.Red);
                         }
                         else if (i == 1 && randomMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " On").X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " On").X / 2, 175 + i * 25), Color.Red);
                         }
                         else if (i == 1 && !randomMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " Off").X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " Off").X / 2, 175 + i * 25), Color.Red);
                         }
                         else if (i == 3)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.Red);
                         }
                         else if (i == 4)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.Red);
                         }
                         else
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i]).X / 2, 175 + i * 25), Color.Red);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i]).X / 2, 175 + i * 25), Color.Red);
                         }
                     }
                     else
                     {
                         if (i == 0 && beginnerMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " On").X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " On").X / 2, 175 + i * 25), Color.White);
                         }
                         else if (i == 0 && !beginnerMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " Off").X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " Off").X / 2, 175 + i * 25), Color.White);
                         }
                         else if (i == 1 && randomMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " On").X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " On").X / 2, 175 + i * 25), Color.White);
                         }
                         else if (i == 1 && !randomMode)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + " Off").X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + " Off").X / 2, 175 + i * 25), Color.White);
                         }
                         else if (i == 3)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.White);
                         }
                         else if (i == 4)
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.White);
                         }
                         else
                         {
-                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsStrings[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsStrings[i]).X / 2, 175 + i * 25), Color.White);
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsServer[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsServer[i]).X / 2, 175 + i * 25), Color.White);
                         }
                     }
                 }
             }
+
+            else if (stage == 4)
+            {
+                //spriteBatch.Draw(mainMenu, Vector2.Zero, Color.White);
+                //spriteBatch.Draw(mainMenu, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - mainMenu.Width / 2, 100), Color.White);
+                spriteBatch.DrawString(font, "Multi Player Setup Menu", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Multi Player Setup Menu").X / 2, 125), Color.White);
+                spriteBatch.DrawString(font, "IP Address: " + ipAddress, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("IP Adress: " + ipAddress).X / 2, 150), Color.White);
+
+                //For each menu selection, if the current menu selection is selected draw it red, else draw it white.
+                for (int i = 0; i < numberOfMultiPlayerSetupMenuOptions; i++)
+                {
+                    if (currentMultiPlayerSetupMenuOptionClient == i)
+                    {
+                        if (i == 0 && beginnerMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " On").X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else if (i == 0 && !beginnerMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " Off").X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else if (i == 1 && randomMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " On").X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else if (i == 1 && !randomMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " Off").X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else if (i == 3)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else if (i == 4)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.Red);
+                        }
+                        else
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i]).X / 2, 175 + i * 25), Color.Red);
+                        }
+                    }
+                    else
+                    {
+                        if (i == 0 && beginnerMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " On").X / 2, 175 + i * 25), Color.White);
+                        }
+                        else if (i == 0 && !beginnerMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " Off").X / 2, 175 + i * 25), Color.White);
+                        }
+                        else if (i == 1 && randomMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " On", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " On").X / 2, 175 + i * 25), Color.White);
+                        }
+                        else if (i == 1 && !randomMode)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + " Off", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + " Off").X / 2, 175 + i * 25), Color.White);
+                        }
+                        else if (i == 3)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + numberOfPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + numberOfPlayers).X / 2, 175 + i * 25), Color.White);
+                        }
+                        else if (i == 4)
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i] + numberOfAIPlayers, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i] + numberOfAIPlayers).X / 2, 175 + i * 25), Color.White);
+                        }
+                        else
+                        {
+                            spriteBatch.DrawString(font, multiPlayerSetupMenuOptionsClient[i], new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString(multiPlayerSetupMenuOptionsClient[i]).X / 2, 175 + i * 25), Color.White);
+                        }
+                    }
+                }
+            }
+#endif
             spriteBatch.End();
         }
 
@@ -660,6 +810,10 @@ namespace Tanto_Cuore
             {
                 handleGeneralMaidReplacement(keyboard, gamepad);
             }
+            else if (screenNumber == settings)
+            {
+                handleSettingsMenu(keyboard, gamepad);
+            }
             else
             {
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
@@ -687,6 +841,11 @@ namespace Tanto_Cuore
             gamepadOld = gamepad;
             mouseOld = mouse;
             keyboardOld = keyboard;
+        }
+
+        private void handleSettingsMenu(KeyboardState keyboard, GamePadState gamepad)
+        {
+            
         }
 
         private void handleGeneralMaidReplacement(KeyboardState keyboard, GamePadState gamepad)
@@ -807,6 +966,7 @@ namespace Tanto_Cuore
                         stage = 1;
                         numberOfAIPlayers = 0;
                     }
+#if WINDOWS
                     else if (currentMultiPlayerModeOption == 1)
                     {
                         stage = 2;
@@ -833,6 +993,12 @@ namespace Tanto_Cuore
                     {
                         screenNumber = 0;
                     }
+#else
+                    else if (currentMultiPlayerModeOption == 1)
+                    {
+                        screenNumber = 0;
+                    }
+#endif
                 }
             }
             else if (stage == 1)
@@ -931,17 +1097,39 @@ namespace Tanto_Cuore
                     }
                 }
             }
+#if WINDOWS
             else if (stage == 2)
             {
+                if (handler == null)
+                {
+                    try
+                    {
+                        listener.Listen(10);
+                        handler = listener.Accept();
+                    }
+                    catch (Exception e)
+                    {
+                        stage = 0;
+                    }
+                }
+                byte[] msg;
+                string MSG = "0,";
+                if (done)
+                {
+                    done = false;
+                    screenNumber = 0;
+                    numberOfAIPlayers = 1;
+                    MSG = "2,";
+                }
                 if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                         (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
                         (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
                         (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
                 {
-                    currentMultiPlayerSetupMenuOption--;
-                    if (currentMultiPlayerSetupMenuOption < 0)
+                    currentMultiPlayerSetupMenuOptionServer--;
+                    if (currentMultiPlayerSetupMenuOptionServer < 0)
                     {
-                        currentMultiPlayerSetupMenuOption = numberOfMultiPlayerSetupMenuOptions - 1;
+                        currentMultiPlayerSetupMenuOptionServer = numberOfMultiPlayerSetupOptionsServer - 1;
                     }
                 }
 
@@ -950,22 +1138,22 @@ namespace Tanto_Cuore
                     (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
                     (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
                 {
-                    currentMultiPlayerSetupMenuOption++;
-                    if (currentMultiPlayerSetupMenuOption >= numberOfMultiPlayerSetupMenuOptions)
+                    currentMultiPlayerSetupMenuOptionServer++;
+                    if (currentMultiPlayerSetupMenuOptionServer >= numberOfMultiPlayerSetupOptionsServer)
                     {
-                        currentMultiPlayerSetupMenuOption = 0;
+                        currentMultiPlayerSetupMenuOptionServer = 0;
                     }
                 }
 
                 if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
                     gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
                 {
-                    if (currentMultiPlayerSetupMenuOption == 0)
+                    if (currentMultiPlayerSetupMenuOptionServer == 0)
                     {
                         beginnerMode = !beginnerMode;
                         randomMode = false;
                     }
-                    else if (currentMultiPlayerSetupMenuOption == 1)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 1)
                     {
                         beginnerMode = false;
                         randomMode = !randomMode;
@@ -976,14 +1164,14 @@ namespace Tanto_Cuore
                             generalMaids.Add(generalMaidsPile.getTopCard());
                         }
                     }
-                    else if (currentMultiPlayerSetupMenuOption == 2)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 2)
                     {
                         beginnerMode = false;
                         randomMode = false;
                         screenNumber = generalMaidSelectionScreen;
                         lastScreen = 2;
                     }
-                    else if (currentMultiPlayerSetupMenuOption == 3)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 3)
                     {
                         //numberOfPlayers++;
                         //if (numberOfPlayers > 4)
@@ -991,7 +1179,7 @@ namespace Tanto_Cuore
                         //    numberOfPlayers = 2;
                         //}
                     }
-                    else if (currentMultiPlayerSetupMenuOption == 4)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 4)
                     {
                         numberOfAIPlayers++;
                         if (numberOfPlayers - numberOfAIPlayers < 2)
@@ -1008,24 +1196,66 @@ namespace Tanto_Cuore
                             numberOfPlayers = 2;
                         }
                     }
-                    else if (currentMultiPlayerSetupMenuOption == 5)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 5 && ready)
                     {
-                        if (beginnerMode)
-                        {
-                            playArea = new PlayArea(numberOfPlayers, numberOfAIPlayers);
-                        }
-                        else
-                        {
-                            playArea = new PlayArea(generalMaids, numberOfPlayers, numberOfAIPlayers);
-                        }
-                        screenNumber = 4;
+                        
+                        MSG = "1,";
+                        gameStart = true;
                     }
 
-                    else if (currentMultiPlayerSetupMenuOption == 6)
+                    else if (currentMultiPlayerSetupMenuOptionServer == 6)
                     {
                         screenNumber = 0;
                         numberOfAIPlayers = 1;
+                        MSG = "2,";
                     }
+                }
+                for (int index = 0; index < generalMaids.Count; index++)
+                {
+                    MSG += generalMaids.ElementAt(index).getCardNumber() + ",";
+                }
+                if (beginnerMode)
+                {
+                    MSG += "0,";
+                }
+                else if (randomMode)
+                {
+                    MSG += "1,";
+                }
+                else
+                {
+                    MSG += "2,";
+                }
+                MSG += numberOfPlayers + "," + numberOfAIPlayers + ",";
+                msg = Encoding.ASCII.GetBytes(MSG);
+                int bytesSent = handler.Send(msg);
+                byte[] bytes = new byte[1024];
+                int bytesRec = handler.Receive(bytes);
+                data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
+                if (data.ElementAt(0) == '0')
+                {
+                    ready = true;
+                }
+                else if (data.ElementAt(0) == '1')
+                {
+                    ready = false;
+                }
+                else if (data.ElementAt(0) == '2')
+                {
+                    done = true;
+                }
+                data = "";
+                if (gameStart)
+                {
+                    if (beginnerMode)
+                    {
+                        playArea = new PlayArea(numberOfPlayers, numberOfAIPlayers, 0);
+                    }
+                    else
+                    {
+                        playArea = new PlayArea(generalMaids, numberOfPlayers, numberOfAIPlayers, 0);
+                    }
+                    screenNumber = 4;
                 }
             }
             else if (stage == 3)
@@ -1044,16 +1274,116 @@ namespace Tanto_Cuore
                     ipAddress = IPAddress.Parse(IPAdress);
                     remoteEP = new IPEndPoint(ipAddress, 11000);
                     localEndPoint = new IPEndPoint(ipHostInfo.AddressList[0], 11000);
+                    sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    sender.Connect(remoteEP);
                     stage = 4;
                 }
             }
             else if (stage == 4)
             {
-                sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                sender.Connect(remoteEP);
-                listener.Bind(localEndPoint);
+                done = false;
+                dataBuffer = new byte[1024];
+                byte[] msg;
+                String MSG = "";
+                int bytesRec = sender.Receive(dataBuffer);
+                data += Encoding.ASCII.GetString(dataBuffer, 0, bytesRec);
+                string[] words = data.Split(',');
+                if (words[0] == "0")
+                {
+
+                }
+                if (words[0] == "1")
+                {
+                    if (beginnerMode)
+                    {
+                        playArea = new PlayArea(numberOfPlayers, numberOfAIPlayers, 1);
+                    }
+                    else
+                    {
+                        playArea = new PlayArea(generalMaids, numberOfPlayers, numberOfAIPlayers, 1);
+                    }
+                    screenNumber = 4;
+                }
+                if (words[0] == "2")
+                {
+                    screenNumber = 0;
+                    numberOfAIPlayers = 1;
+                }
+                generalMaids = new List<Card>();
+                for (int index = 0; index < 10; index++)
+                {
+                    generalMaids.Add(new Card(Convert.ToInt32(words[index + 1])));
+                }
+                if (words[11] == "0")
+                {
+                    beginnerMode = true;
+                    randomMode = false;
+                }
+                if (words[11] == "1")
+                {
+                    beginnerMode = false;
+                    randomMode = true;
+                }
+                if (words[11] == "2")
+                {
+                    beginnerMode = false;
+                    randomMode = false;
+                }
+                numberOfPlayers = Convert.ToInt32(words[12]);
+                numberOfAIPlayers = Convert.ToInt32(words[13]);
+                if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                        (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                        (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                        (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+                {
+                    currentMultiPlayerSetupMenuOptionClient--;
+                    if (currentMultiPlayerSetupMenuOptionClient < 0)
+                    {
+                        currentMultiPlayerSetupMenuOptionClient = numberOfMultiPlayerSetupOptionsClient - 1;
+                    }
+                }
+
+                if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                    (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                    (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+                {
+                    currentMultiPlayerSetupMenuOptionClient++;
+                    if (currentMultiPlayerSetupMenuOptionClient >= numberOfMultiPlayerSetupOptionsClient)
+                    {
+                        currentMultiPlayerSetupMenuOptionClient = 0;
+                    }
+                }
+
+                if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+                {
+                    if (currentMultiPlayerSetupMenuOptionClient == 5)
+                    {
+                        ready = !ready;
+                    }
+                    if (currentMultiPlayerSetupMenuOptionClient == 6)
+                    {
+                        done = true;
+                    }
+                }
+                if (done)
+                {
+                    MSG += "2";
+                }
+                else if (ready)
+                {
+                    MSG += "0";
+                }
+                else if (!ready)
+                {
+                    MSG += "1";
+                }
+                msg = Encoding.ASCII.GetBytes(MSG);
+                sender.Send(msg);
+                data = "";
             }
+#endif
         }
         
         private void handleSinglePlayerSetupMenuInput(KeyboardState keyboard, GamePadState gamepad)

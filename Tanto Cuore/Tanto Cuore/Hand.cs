@@ -71,5 +71,15 @@ namespace Tanto_Cuore
             }
             return false;
         }
+
+        internal int numberOfCardsInHand()
+        {
+            return hand.Count;
+        }
+
+        internal void removeAll()
+        {
+            hand = new List<Card>();
+        }
     }
 }

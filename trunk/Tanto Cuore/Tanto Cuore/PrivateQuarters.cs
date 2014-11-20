@@ -109,7 +109,7 @@ namespace Tanto_Cuore
 
         internal PrivateQuartersCard privateMaidAt(int item)
         {
-            return cardList.ElementAt(item);
+            return privateMaids.ElementAt(item);
         }
 
         internal Card removeIllenessFrom(int item)
@@ -326,6 +326,40 @@ namespace Tanto_Cuore
         internal bool privateMaidHasIllness()
         {
             return privateMaid().hasIllness();
+        }
+
+        internal int getNumberOfPrivateMaids()
+        {
+            return privateMaids.Count;
+        }
+
+        internal void setNumberOfBadHabits(int p)
+        {
+            if (badHabits.Count < p)
+            {
+                for (int index = 0; index < p - badHabits.Count; index++)
+                {
+                    badHabits.Add(new Card(30));
+                }
+            }
+            else if (badHabits.Count > p)
+            {
+                for (int index = 0; index < badHabits.Count - p; index++)
+                {
+                    badHabits.RemoveAt(0);
+                }
+            }
+        }
+
+        internal void RemoveAll()
+        {
+            privateMaids = new List<PrivateQuartersCard>();
+            cardList = new List<PrivateQuartersCard>();
+        }
+
+        internal void addIllnessToPrivateMaidAt(int privateMaidIndex, Card card)
+        {
+            privateMaids.ElementAt(privateMaidIndex).addIllness(card);
         }
     }
 }

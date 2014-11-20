@@ -2737,7 +2737,7 @@ namespace Tanto_Cuore
                     bestCardIsPrivateMaid = true;
                 }
             }
-            if (!bestCardIsPrivateMaid  && player.hasChamberMaids() && player.privateMaidAt(bestCardNumber).hasIllness())
+            if (!bestCardIsPrivateMaid  && player.hasChamberMaids() && player.chamberMaidAt(bestCardNumber).hasIllness())
             {
                 playArea.illnesses.addCard(player.removeIllnessFromMaid(bestCardNumber));
             }

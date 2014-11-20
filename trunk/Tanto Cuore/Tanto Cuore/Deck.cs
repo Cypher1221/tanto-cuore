@@ -130,5 +130,41 @@ namespace Tanto_Cuore
             }
             return VP;
         }
+
+        internal int getNumberOfCardsRemaining()
+        {
+            return deck.Count;
+        }
+
+        internal Card lookAtCardAt(int deckIndex)
+        {
+            return deck.ElementAt(deckIndex);
+        }
+
+        internal int getNumberOfCardsRemainingInDiscard()
+        {
+            return discardPile.Count;
+        }
+
+        internal Card lookAtCardAtInDiscard(int discardIndex)
+        {
+            return discardPile.ElementAt(discardIndex);
+        }
+
+        internal void removeAll()
+        {
+            deck = new List<Card>();
+            discardPile = new List<Card>();
+        }
+
+        internal void addCardToDeck(Card card)
+        {
+            deck.Add(card);
+        }
+
+        internal void addCardToDiscardPile(Card card)
+        {
+            discardPile.Add(card);
+        }
     }
 }

@@ -14,13 +14,13 @@ namespace Tanto_Cuore
 {
     class Player
     {
-        Hand hand;
-        Deck deck;
-        PrivateQuarters privateQuarters;
-        List<Card> playedCards;
-        int servings = 1;
-        int love = 0;
-        int employments = 1;
+        internal Hand hand;
+        internal Deck deck;
+        internal PrivateQuarters privateQuarters;
+        internal List<Card> playedCards;
+        internal int servings = 1;
+        internal int love = 0;
+        internal int employments = 1;
         internal int playerNumber;
         int totalNumberOfPlayers;
         PlayArea thePlayArea;
@@ -28,10 +28,12 @@ namespace Tanto_Cuore
         public bool gainedExtraCard { get; set; }
         public bool otherPlayerHasAmber { get; set; }
         public bool playerIsAI { get; set; }
+        public bool playerIsOnline { get; set; }
 
-        public Player(int playerNumber, int totalNumberOfPlayers, PlayArea thePlayArea, bool isAI)
+        public Player(int playerNumber, int totalNumberOfPlayers, PlayArea thePlayArea, bool isAI, bool isOnline)
         {
             playerIsAI = isAI;
+            playerIsOnline = isOnline;
             hand = new Hand();
             deck = new Deck();
             hand.addCardToHand(deck.drawCard());
@@ -306,11 +308,6 @@ namespace Tanto_Cuore
         internal int getNumberOfMaidsInPrivateQuarters()
         {
             return privateQuarters.getNumberOfMaidsInPrivateQuarters();
-        }
-
-        internal PrivateQuartersCard privateMaidAt(int item)
-        {
-            return privateQuarters.privateMaidAt(item);
         }
 
         internal Card removeIllnessFromMaid(int item)

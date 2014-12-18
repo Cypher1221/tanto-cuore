@@ -2,6 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+#if WINDOWS
+using System.Net;
+using System.Net.Sockets;
+using System.IO;
+using System.Reflection;
+using System.Threading;
+#endif
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
@@ -71,6 +78,11 @@ namespace Tanto_Cuore
         bool gameIsOnline = false;
         bool isServer = false;
         bool onlineControl = true;
+        int chunk = 0;
+#if WINDOWS
+        internal static Socket sender;
+        internal static Socket handler;
+#endif
 
         public PlayArea(int numberOfPlayers, int numberOfAI)
         {
@@ -176,6 +188,7 @@ namespace Tanto_Cuore
             }
         }
 
+#if WINDOWS
         public PlayArea(int numberOfPlayers, int numberOfAI, int thisIsMyPlayerNumber)
         {
             gameIsOnline = true;
@@ -220,6 +233,15 @@ namespace Tanto_Cuore
             if (thisIsMyPlayerNumber == 0)
             {
                 isServer = true;
+                handler = Game1.handler;
+                handler.ReceiveTimeout = 1000;
+                handler.NoDelay = true;
+            }
+            else
+            {
+                sender = Game1.sender;
+                sender.ReceiveTimeout = 1000;
+                sender.NoDelay = true;
             }
             for (int index = 0; index < numberOfPlayers; index++)
             {
@@ -284,6 +306,15 @@ namespace Tanto_Cuore
             if (thisIsMyPlayerNumber == 0)
             {
                 isServer = true;
+                handler = Game1.handler;
+                handler.ReceiveTimeout = 1000;
+                handler.NoDelay = true;
+            }
+            else
+            {
+                sender = Game1.sender;
+                sender.ReceiveTimeout = 1000;
+                sender.NoDelay = true;
             }
             for (int index = 0; index < numberOfPlayers; index++)
             {
@@ -305,6 +336,7 @@ namespace Tanto_Cuore
                 }
             }
         }
+#endif
 
         public void drawPlayArea(GameTime gameTime, SpriteBatch spriteBatch)
         {
@@ -1312,337 +1344,39 @@ namespace Tanto_Cuore
                 byte[] msg;
                 string MSG = "";
                 int bytesRec;
-                byte[] bytes = new byte[1024];
+                byte[] mode = new byte[2];
                 if (playerList[activePlayer].playerIsOnline)
                 {
-                    while (true)
+                    byte[] bytes = new byte[20240];
+                    if (isServer)
                     {
-                        bytes = new byte[1024];
-                        if (isServer)
-                        {
-                            bytesRec = Game1.handler.Receive(bytes);
-                        }
-                        else
-                        {
-                            bytesRec = Game1.sender.Receive(bytes);
-                        }
-                        Game1.data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
-                        if (Game1.data.IndexOf("<EOF>") > -1)
-                        {
-                            break;
-                        }
-                    }
-                    string[] words = Game1.data.Split(',');
-                    activePlayer = Convert.ToInt32(words[0]);
-                    currentCardNumber = Convert.ToInt32(words[1]);
-                    currentRowNumber = Convert.ToInt32(words[2]);
-                    currentPhase = Convert.ToInt32(words[3]);
-                    oneLove.setNumberOfCardsTo(Convert.ToInt32(words[4]), 33);
-                    twoLove.setNumberOfCardsTo(Convert.ToInt32(words[5]),32);
-                    threeLove.setNumberOfCardsTo(Convert.ToInt32(words[6]),31);
-                    marianne.setNumberOfCardsTo(Convert.ToInt32(words[7]),1);
-                    colette.setNumberOfCardsTo(Convert.ToInt32(words[8]),2);
-                    badHabits.setNumberOfCardsTo(Convert.ToInt32(words[9]),30);
-                    illnesses.setNumberOfCardsTo(Convert.ToInt32(words[10]),29);
-                    for (int index = 0; index < generalMaids.Count; index++)
-                    {
-                        generalMaids.ElementAt(index).setNumberOfCardsTo(Convert.ToInt32(words[11+index]),0);
-                    }
-                    if (words[21] == "-1")
-                    {
-                        privateMaidOne.getTopCard();
+                        Receive(handler, bytes, 0, 4, 10000);
+                        Receive(handler, mode, 0, 2, 10000);
+                        bytesRec = BitConverter.ToInt32(bytes, 0);
+                        Receive(handler, bytes, 0, bytesRec, 10000);
+
                     }
                     else
                     {
-                        if (Convert.ToInt32(words[21]) != privateMaidOne.lookAtTopCard().getCardNumber())
-                        {
-                            privateMaidOne.getTopCard();
-                            privateMaidOne.addCard(new Card(Convert.ToInt32(words[21])));
-                        }
+                        Receive(sender, bytes, 0, 4, 10000);
+                        Receive(sender, mode, 0, 2, 10000);
+                        bytesRec = BitConverter.ToInt32(bytes, 0);
+                        Receive(sender, bytes, 0, bytesRec, 10000);
                     }
-                    if (words[22] == "-1")
+                    chunk = mode[1]-1;
+                    if (chunk < 0)
                     {
-                        privateMaidTwo.getTopCard();
+                        chunk = numberOfPlayers + 1;
                     }
-                    else
+                    Game1.data = Encoding.ASCII.GetString(bytes, 0, bytesRec);
+                    //Game1.data = new String(Game1.data.ToCharArray(), Game1.data.IndexOf("\n")+2, Game1.data.LastIndexOf("<EOF>") - Game1.data.IndexOf("\n"));
+                    if (mode[0] == 1)
                     {
-                        if (Convert.ToInt32(words[22]) != privateMaidTwo.lookAtTopCard().getCardNumber())
-                        {
-                            privateMaidTwo.getTopCard();
-                            privateMaidTwo.addCard(new Card(Convert.ToInt32(words[22])));
-                        }
+                        fullMessageRead(Game1.data);
                     }
-                    if (words[23] == "0")
+                    else if (mode[0] == 0)
                     {
-                        selectPlayerModeBool = true;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "1")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = true;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "2")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = true;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "3")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = true;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "4")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = true;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "5")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = true;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "6")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = true;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "7")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = true;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "8")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = true;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "9")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = true;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "10")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = true;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    else if (words[23] == "11")
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = true;
-                    }
-                    else
-                    {
-                        selectPlayerModeBool = false;
-                        selectEventModeBool = false;
-                        selectDiscardModeBool = false;
-                        selectDeckModeBool = false;
-                        selectChamberMaidModeBool = false;
-                        exchangeModeBool = false;
-                        decideToDiscardForServingsModeBool = false;
-                        discardHandToAddIllnessesToOneMaidModeBool = false;
-                        lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
-                        loveOrEmploymentChoiceBool = false;
-                        moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
-                        discard3LoveToRemoveIllnessModeBool = false;
-                    }
-                    emptiedPiles = Convert.ToInt32(words[24]);
-                    int numberOfCardsInPrivateMaidsPile = Convert.ToInt32(words[25]);
-                    privateMaidPile.setNumberOfCardsTo(0,0);
-                    for (int privateMaidPileIndex = 0; privateMaidPileIndex < numberOfCardsInPrivateMaidsPile; privateMaidPileIndex++)
-                    {
-                        privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));
-                    }
-                    int totalIndexOffset = 26+numberOfCardsInPrivateMaidsPile;
-                    for (int playerIndex = 0; playerIndex < numberOfPlayers; playerIndex++)
-                    {
-                        playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].deck.removeAll();
-                        for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
-                        {
-                            playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
-                        }
-                        totalIndexOffset += numberOfCardsInDeck;
-                        int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
-                        {
-                            playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
-                        }
-                        totalIndexOffset += numberOfCardsInDiscard;
-                        int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].hand.removeAll();
-                        for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
-                        {
-                            playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
-                        }
-                        totalIndexOffset += numberOfCardsInHand;
-                        int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].playedCards = new List<Card>();
-                        for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
-                        {
-                            playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
-                        }
-                        totalIndexOffset += numberOfPlayedCards;
-                        playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
-                        totalIndexOffset++;
-                        int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        playerList[playerIndex].privateQuarters.RemoveAll();
-                        for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
-                        {
-                            playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
-                            totalIndexOffset++;
-                            int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
-                            for (int index = 0; index < numberOfIllnesses; index++)
-                            {
-                                playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
-                            }
-                        }
-                        totalIndexOffset += numberOfMaidsInPrivateQuarters;
-                        int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
-                        totalIndexOffset++;
-                        for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
-                        {
-                            playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
-                            totalIndexOffset++;
-                            int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
-                            for (int index = 0; index < numberOfIllnesses; index++)
-                            {
-                                playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
-                            }
-                        }
-                        totalIndexOffset += numberOfPrivateMaids;
+                        partialMessageRead(Game1.data);
                     }
                     Game1.data = "";
                     if (selectDiscardModeBool)
@@ -1655,15 +1389,26 @@ namespace Tanto_Cuore
                 {
                     onlineControl = true;
                     int bytesSent;
-                    MSG = messageCreate(activePlayer);
+                    //MSG = fullMessageCreate(activePlayer);
+                    MSG = partialMessageCreate(activePlayer);
                     msg = Encoding.ASCII.GetBytes(MSG);
+                    byte[] length = new byte[1024];
+                    length = BitConverter.GetBytes(MSG.Length);
+                    mode[0] = 0;
+                    mode[1] = (byte)chunk;
                     if (isServer)
                     {
-                        bytesSent = Game1.handler.Send(msg);
+                        //bytesSent = handler.Send(msg);
+                        Send(handler, length, 0, 4, 10000);
+                        Send(handler, mode, 0, 2, 10000);
+                        Send(handler, msg, 0, MSG.Length, 10000);
                     }
                     else
                     {
-                        bytesSent = Game1.sender.Send(msg);
+                        //bytesSent = sender.Send(msg);
+                        Send(sender, length, 0, 4, 10000);
+                        Send(sender, mode, 0, 2, 10000);
+                        Send(sender, msg, 0, MSG.Length, 10000);
                     }
                     if (!discard3LoveToRemoveIllnessModeBool && !lookAtRandomCardInAnotherPlayersHandAndSwapModeBool && !moveEventCardToAnotherPlayersPrivateQuartersModeBool && !discardHandToAddIllnessesToOneMaidModeBool && !loveOrEmploymentChoiceBool && !selectPlayerModeBool && !selectEventModeBool && !selectDiscardModeBool && !selectDeckModeBool && !selectChamberMaidModeBool && !decideToDiscardForServingsModeBool && !exchangeModeBool && !playerList[activePlayer].playerIsAI)
                     {
@@ -1735,7 +1480,1192 @@ namespace Tanto_Cuore
 #endif
             }
         }
+
+        private void partialMessageRead(string p)
+        {
+            int totalIndexOffset = 0;
+            int playerIndex = chunk - 1;
+            string[] words = Game1.data.Split(',');
+            if (chunk == 0)
+            {
+                activePlayer = Convert.ToInt32(words[0]);
+                currentCardNumber = Convert.ToInt32(words[1]);
+                currentRowNumber = Convert.ToInt32(words[2]);
+                currentPhase = Convert.ToInt32(words[3]);
+                oneLove.setNumberOfCardsTo(Convert.ToInt32(words[4]), 33);
+                twoLove.setNumberOfCardsTo(Convert.ToInt32(words[5]), 32);
+                threeLove.setNumberOfCardsTo(Convert.ToInt32(words[6]), 31);
+                marianne.setNumberOfCardsTo(Convert.ToInt32(words[7]), 1);
+                colette.setNumberOfCardsTo(Convert.ToInt32(words[8]), 2);
+                badHabits.setNumberOfCardsTo(Convert.ToInt32(words[9]), 30);
+                illnesses.setNumberOfCardsTo(Convert.ToInt32(words[10]), 29);
+                for (int index = 0; index < generalMaids.Count; index++)
+                {
+                    generalMaids.ElementAt(index).setNumberOfCardsTo(Convert.ToInt32(words[11 + index]), 0);
+                }
+                if (words[21] == "-1")
+                {
+                    privateMaidOne.getTopCard();
+                }
+                else
+                {
+                    if (Convert.ToInt32(words[21]) != privateMaidOne.lookAtTopCard().getCardNumber())
+                    {
+                        privateMaidOne.getTopCard();
+                        privateMaidOne.addCard(new Card(Convert.ToInt32(words[21])));
+                    }
+                }
+                if (words[22] == "-1")
+                {
+                    privateMaidTwo.getTopCard();
+                }
+                else
+                {
+                    if (Convert.ToInt32(words[22]) != privateMaidTwo.lookAtTopCard().getCardNumber())
+                    {
+                        privateMaidTwo.getTopCard();
+                        privateMaidTwo.addCard(new Card(Convert.ToInt32(words[22])));
+                    }
+                }
+                if (words[23] == "0")
+                {
+                    selectPlayerModeBool = true;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "1")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = true;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "2")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = true;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "3")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = true;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "4")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = true;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "5")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = true;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "6")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = true;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "7")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = true;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "8")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = true;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "9")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = true;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "10")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = true;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                else if (words[23] == "11")
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = true;
+                }
+                else
+                {
+                    selectPlayerModeBool = false;
+                    selectEventModeBool = false;
+                    selectDiscardModeBool = false;
+                    selectDeckModeBool = false;
+                    selectChamberMaidModeBool = false;
+                    exchangeModeBool = false;
+                    decideToDiscardForServingsModeBool = false;
+                    discardHandToAddIllnessesToOneMaidModeBool = false;
+                    lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                    loveOrEmploymentChoiceBool = false;
+                    moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                    discard3LoveToRemoveIllnessModeBool = false;
+                }
+                emptiedPiles = Convert.ToInt32(words[24]);
+                int numberOfCardsInPrivateMaidsPile = Convert.ToInt32(words[25]);
+                privateMaidPile.setNumberOfCardsTo(0, 0);
+                for (int privateMaidPileIndex = 0; privateMaidPileIndex < numberOfCardsInPrivateMaidsPile; privateMaidPileIndex++)
+                {
+                    privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));
+                }
+                chunk++;
+            }
+            else if (chunk == 1)
+            {
+                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].deck.removeAll();
+                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDeck;
+                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDiscard;
+                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].hand.removeAll();
+                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                {
+                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                }
+                totalIndexOffset += numberOfCardsInHand;
+                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].playedCards = new List<Card>();
+                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                {
+                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                }
+                totalIndexOffset += numberOfPlayedCards;
+                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                totalIndexOffset++;
+                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].privateQuarters.RemoveAll();
+                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                    }
+                }
+                chunk++;
+            }
+            else if (chunk == 2)
+            {
+                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].deck.removeAll();
+                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDeck;
+                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDiscard;
+                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].hand.removeAll();
+                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                {
+                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                }
+                totalIndexOffset += numberOfCardsInHand;
+                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].playedCards = new List<Card>();
+                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                {
+                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                }
+                totalIndexOffset += numberOfPlayedCards;
+                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                totalIndexOffset++;
+                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].privateQuarters.RemoveAll();
+                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                    }
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+            }
+            else if (chunk == 3)
+            {
+                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].deck.removeAll();
+                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDeck;
+                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDiscard;
+                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].hand.removeAll();
+                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                {
+                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                }
+                totalIndexOffset += numberOfCardsInHand;
+                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].playedCards = new List<Card>();
+                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                {
+                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                }
+                totalIndexOffset += numberOfPlayedCards;
+                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                totalIndexOffset++;
+                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].privateQuarters.RemoveAll();
+                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                    }
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+            }
+            else if (chunk == 4)
+            {
+                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].deck.removeAll();
+                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDeck;
+                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDiscard;
+                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].hand.removeAll();
+                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                {
+                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                }
+                totalIndexOffset += numberOfCardsInHand;
+                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].playedCards = new List<Card>();
+                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                {
+                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                }
+                totalIndexOffset += numberOfPlayedCards;
+                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                totalIndexOffset++;
+                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].privateQuarters.RemoveAll();
+                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                    }
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+            }
+        }
+
+        private string partialMessageCreate(int activePlayer)
+        {
+            int playerIndex = chunk - 1;
+            if (chunk == 0)
+            {
+                string MSG = activePlayer + ",";
+                MSG += currentCardNumber + "," + currentRowNumber + ","
+                    + currentPhase + "," + oneLove.getNumberOfRemainingCards() + ","
+                    + twoLove.getNumberOfRemainingCards() + ","
+                    + threeLove.getNumberOfRemainingCards() + ","
+                    + marianne.getNumberOfRemainingCards() + ","
+                    + colette.getNumberOfRemainingCards() + ","
+                    + badHabits.getNumberOfRemainingCards() + ","
+                    + illnesses.getNumberOfRemainingCards() + ",";
+                for (int index = 0; index < generalMaids.Count; index++)
+                {
+                    MSG += generalMaids.ElementAt(index).getNumberOfRemainingCards() + ",";
+                }
+                if (privateMaidOne.getNumberOfRemainingCards() > 0)
+                {
+                    MSG += privateMaidOne.lookAtTopCard().getCardNumber() + ",";
+                }
+                else
+                {
+                    MSG += "-1,";
+                }
+                if (privateMaidTwo.getNumberOfRemainingCards() > 0)
+                {
+                    MSG += privateMaidTwo.lookAtTopCard().getCardNumber() + ",";
+                }
+                else
+                {
+                    MSG += "-1,";
+                }
+                if (selectPlayerModeBool)
+                {
+                    MSG += "0,";
+                }
+                else if (selectEventModeBool)
+                {
+                    MSG += "1,";
+                }
+                else if (selectDiscardModeBool)
+                {
+                    MSG += "2,";
+                }
+                else if (selectDeckModeBool)
+                {
+                    MSG += "3,";
+                }
+                else if (selectChamberMaidModeBool)
+                {
+                    MSG += "4,";
+                }
+                else if (exchangeModeBool)
+                {
+                    MSG += "5,";
+                }
+                else if (decideToDiscardForServingsModeBool)
+                {
+                    MSG += "6,";
+                }
+                else if (discardHandToAddIllnessesToOneMaidModeBool)
+                {
+                    MSG += "7,";
+                }
+                else if (lookAtRandomCardInAnotherPlayersHandAndSwapModeBool)
+                {
+                    MSG += "8,";
+                }
+                else if (loveOrEmploymentChoiceBool)
+                {
+                    MSG += "9,";
+                }
+                else if (moveEventCardToAnotherPlayersPrivateQuartersModeBool)
+                {
+                    MSG += "10,";
+                }
+                else if (discard3LoveToRemoveIllnessModeBool)
+                {
+                    MSG += "11,";
+                }
+                else
+                {
+                    MSG += "-1,";
+                }
+                MSG += emptiedPiles + ",";
+                MSG += privateMaidPile.getNumberOfRemainingCards() + ",";
+                for (int index = 0; index < privateMaidPile.getNumberOfRemainingCards(); index++)
+                {
+                    MSG += privateMaidPile.lookAtCardAt(index).getCardNumber() + ",";
+                }
+                chunk++;
+                return MSG;
+            }
+            else if (chunk == 1)
+            {
+                string MSG = playerList[playerIndex].love + ",";
+                MSG += playerList[playerIndex].servings + ",";
+                MSG += playerList[playerIndex].employments + ",";
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                {
+                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].playedCards.Count + ",";
+                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                {
+                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                chunk++;
+                return MSG;
+            }
+            else if (chunk == 2)
+            {
+                string MSG = playerList[playerIndex].love + ",";
+                MSG += playerList[playerIndex].servings + ",";
+                MSG += playerList[playerIndex].employments + ",";
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                {
+                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].playedCards.Count + ",";
+                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                {
+                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+                return MSG;
+            }
+            else if (chunk == 3)
+            {
+                string MSG = playerList[playerIndex].love + ",";
+                MSG += playerList[playerIndex].servings + ",";
+                MSG += playerList[playerIndex].employments + ",";
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                {
+                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].playedCards.Count + ",";
+                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                {
+                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+                return MSG;
+            }
+            else if (chunk == 4)
+            {
+                string MSG = playerList[playerIndex].love + ",";
+                MSG += playerList[playerIndex].servings + ",";
+                MSG += playerList[playerIndex].employments + ",";
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                {
+                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                {
+                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].playedCards.Count + ",";
+                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                {
+                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                {
+                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                }
+                chunk++;
+                if (chunk > numberOfPlayers)
+                {
+                    chunk = 0;
+                }
+                return MSG;
+            }
+            return "";
+        }
+
+        private void fullMessageRead(string p)
+        {
+            chunk = 0;
+            string[] words = Game1.data.Split(',');
+            activePlayer = Convert.ToInt32(words[0]);
+            currentCardNumber = Convert.ToInt32(words[1]);
+            currentRowNumber = Convert.ToInt32(words[2]);
+            currentPhase = Convert.ToInt32(words[3]);
+            oneLove.setNumberOfCardsTo(Convert.ToInt32(words[4]), 33);
+            twoLove.setNumberOfCardsTo(Convert.ToInt32(words[5]), 32);
+            threeLove.setNumberOfCardsTo(Convert.ToInt32(words[6]), 31);
+            marianne.setNumberOfCardsTo(Convert.ToInt32(words[7]), 1);
+            colette.setNumberOfCardsTo(Convert.ToInt32(words[8]), 2);
+            badHabits.setNumberOfCardsTo(Convert.ToInt32(words[9]), 30);
+            illnesses.setNumberOfCardsTo(Convert.ToInt32(words[10]), 29);
+            for (int index = 0; index < generalMaids.Count; index++)
+            {
+                generalMaids.ElementAt(index).setNumberOfCardsTo(Convert.ToInt32(words[11 + index]), 0);
+            }
+            if (words[21] == "-1")
+            {
+                privateMaidOne.getTopCard();
+            }
+            else
+            {
+                if (Convert.ToInt32(words[21]) != privateMaidOne.lookAtTopCard().getCardNumber())
+                {
+                    privateMaidOne.getTopCard();
+                    privateMaidOne.addCard(new Card(Convert.ToInt32(words[21])));
+                }
+            }
+            if (words[22] == "-1")
+            {
+                privateMaidTwo.getTopCard();
+            }
+            else
+            {
+                if (Convert.ToInt32(words[22]) != privateMaidTwo.lookAtTopCard().getCardNumber())
+                {
+                    privateMaidTwo.getTopCard();
+                    privateMaidTwo.addCard(new Card(Convert.ToInt32(words[22])));
+                }
+            }
+            if (words[23] == "0")
+            {
+                selectPlayerModeBool = true;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "1")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = true;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "2")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = true;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "3")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = true;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "4")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = true;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "5")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = true;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "6")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = true;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "7")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = true;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "8")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = true;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "9")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = true;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "10")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = true;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            else if (words[23] == "11")
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = true;
+            }
+            else
+            {
+                selectPlayerModeBool = false;
+                selectEventModeBool = false;
+                selectDiscardModeBool = false;
+                selectDeckModeBool = false;
+                selectChamberMaidModeBool = false;
+                exchangeModeBool = false;
+                decideToDiscardForServingsModeBool = false;
+                discardHandToAddIllnessesToOneMaidModeBool = false;
+                lookAtRandomCardInAnotherPlayersHandAndSwapModeBool = false;
+                loveOrEmploymentChoiceBool = false;
+                moveEventCardToAnotherPlayersPrivateQuartersModeBool = false;
+                discard3LoveToRemoveIllnessModeBool = false;
+            }
+            emptiedPiles = Convert.ToInt32(words[24]);
+            int numberOfCardsInPrivateMaidsPile = Convert.ToInt32(words[25]);
+            privateMaidPile.setNumberOfCardsTo(0, 0);
+            for (int privateMaidPileIndex = 0; privateMaidPileIndex < numberOfCardsInPrivateMaidsPile; privateMaidPileIndex++)
+            {
+                privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));
+            }
+            int totalIndexOffset = 26 + numberOfCardsInPrivateMaidsPile;
+            for (int playerIndex = 0; playerIndex < numberOfPlayers; playerIndex++)
+            {
+                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].deck.removeAll();
+                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDeck;
+                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                {
+                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                }
+                totalIndexOffset += numberOfCardsInDiscard;
+                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].hand.removeAll();
+                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                {
+                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                }
+                totalIndexOffset += numberOfCardsInHand;
+                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].playedCards = new List<Card>();
+                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                {
+                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                }
+                totalIndexOffset += numberOfPlayedCards;
+                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                totalIndexOffset++;
+                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                playerList[playerIndex].privateQuarters.RemoveAll();
+                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                totalIndexOffset++;
+                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                {
+                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    totalIndexOffset++;
+                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                    for (int index = 0; index < numberOfIllnesses; index++)
+                    {
+                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                    }
+                }
+                totalIndexOffset += numberOfPrivateMaids;
+            }
+        }
 #if WINDOWS
+        public static void Receive(Socket socket, byte[] buffer, int offset, int size, int timeout)
+        {
+            int startTickCount = Environment.TickCount;
+            int received = 0;  // how many bytes is already received
+            do
+            {
+                if (Environment.TickCount > startTickCount + timeout)
+                    throw new Exception("Timeout.");
+                try
+                {
+                    received += socket.Receive(buffer, offset + received, size - received, SocketFlags.None);
+                }
+                catch (SocketException ex)
+                {
+                    if (ex.SocketErrorCode == SocketError.WouldBlock ||
+                        ex.SocketErrorCode == SocketError.IOPending ||
+                        ex.SocketErrorCode == SocketError.NoBufferSpaceAvailable)
+                    {
+                        // socket buffer is probably empty, wait and try again
+                        Thread.Sleep(30);
+                    }
+                    else
+                        throw ex;  // any serious error occurr
+                }
+            } while (received < size);
+        }
+
+        public static void Send(Socket socket, byte[] buffer, int offset, int size, int timeout)
+        {
+            int startTickCount = Environment.TickCount;
+            int sent = 0;  // how many bytes is already sent
+            do
+            {
+                if (Environment.TickCount > startTickCount + timeout)
+                    throw new Exception("Timeout.");
+                try
+                {
+                    sent += socket.Send(buffer, offset + sent, size - sent, SocketFlags.None);
+                }
+                catch (SocketException ex)
+                {
+                    if (ex.SocketErrorCode == SocketError.WouldBlock ||
+                        ex.SocketErrorCode == SocketError.IOPending ||
+                        ex.SocketErrorCode == SocketError.NoBufferSpaceAvailable)
+                    {
+                        // socket buffer is probably full, wait and try again
+                        Thread.Sleep(30);
+                    }
+                    else
+                        throw ex;  // any serious error occurr
+                }
+            } while (sent < size);
+        }
+
         private void selectDiscardModeInputOnline(KeyboardState keyboardOld, KeyboardState keyboard, GamePadState gamepadOld, GamePadState gamepad)
         {
             if (onlineControl)
@@ -2385,9 +3315,10 @@ namespace Tanto_Cuore
         }
 #endif
 
-        private string messageCreate(int firstNum)
+        private string fullMessageCreate(int firstNum)
         {
-            string MSG = firstNum + ",";
+            chunk = 0;
+            string MSG = "\n,"+firstNum + ",";
             MSG += currentCardNumber + "," + currentRowNumber + ","
                 + currentPhase + "," + oneLove.getNumberOfRemainingCards() + ","
                 + twoLove.getNumberOfRemainingCards() + ","
@@ -2503,8 +3434,8 @@ namespace Tanto_Cuore
                 MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
                 for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(chamberMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.privateMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
                 }
                 MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
                 for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
@@ -4722,15 +5653,26 @@ namespace Tanto_Cuore
                 {
                     byte[] msg;
                     int bytesSent;
-                    string MSG = messageCreate(activePlayer);
+                    string MSG = fullMessageCreate(activePlayer);
                     msg = Encoding.ASCII.GetBytes(MSG);
+                    byte[] length;
+                    length = BitConverter.GetBytes(MSG.Length);
+                    byte[] mode = new byte[1];
+                    mode[0] = 1;
+                    mode[1] = (byte)chunk;
                     if (isServer)
                     {
-                        bytesSent = Game1.handler.Send(msg);
+                        //bytesSent = handler.Send(msg);
+                        Send(handler, length, 0, 4, 10000);
+                        Send(handler, mode, 0, 2, 10000);
+                        Send(handler, msg, 0, MSG.Length, 10000);
                     }
                     else
                     {
-                        bytesSent = Game1.sender.Send(msg);
+                        //bytesSent = sender.Send(msg);
+                        Send(sender, length, 0, 4, 10000);
+                        Send(sender, mode, 0, 2, 10000);
+                        Send(sender, msg, 0, MSG.Length, 10000);
                     }
                     if (playerList[activePlayer].playerIsOnline)
                     {

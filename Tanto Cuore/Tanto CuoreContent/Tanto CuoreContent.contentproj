@@ -457,8 +457,50 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Compile>
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <Folder Include="Music\" />
+    <Compile Include="Music\00 - Ao~Iconoclast - Kotoko.mp3">
+      <Name>00 - Ao~Iconoclast - Kotoko</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\01 - This Will Be the Day %28Rooster Teeth%27s Rwby%29 [feat. Casey Lee Williams].mp3">
+      <Name>01 - This Will Be the Day %28Rooster Teeth%27s Rwby%29 [feat. Casey Lee Williams]</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\02 Red Like Roses %28Red Trailer%29 [fea.mp3">
+      <Name>02 Red Like Roses %28Red Trailer%29 [fea</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\08 I May Fall %28feat. Casey Lee Willi.mp3">
+      <Name>08 I May Fall %28feat. Casey Lee Willi</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\09 Red Like Roses - Part II %28feat. C.mp3">
+      <Name>09 Red Like Roses - Part II %28feat. C</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\12 Wings %28feat. Casey Lee Williams%29.mp3">
+      <Name>12 Wings %28feat. Casey Lee Williams%29</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Include="Music\LOTR Compilation.mp3">
+      <Name>LOTR Compilation</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\XNA Game Studio\$(XnaFrameworkVersion)\Microsoft.Xna.GameStudio.ContentPipeline.targets" />
   <!--  To modify your build process, add your task inside one of the targets below and uncomment it. 

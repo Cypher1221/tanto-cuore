@@ -83,6 +83,8 @@ namespace Tanto_Cuore
         List<Song> songs;
         Random rand;
         bool gameStart = false;
+        int soundOptionSelection = 0;
+        const int soundOptionSelectionNumber = 4;
 #endif
 
         static public Texture2D[] cardPicturesFull;
@@ -90,6 +92,7 @@ namespace Tanto_Cuore
         static public Texture2D cardBack;
 
         public int stage { get; set; }
+        public string soundFXVolume { get; set; }
 
         KeyboardState keyboardOld;
         MouseState mouseOld;
@@ -116,6 +119,7 @@ namespace Tanto_Cuore
         protected override void Initialize()
         {
 #if WINDOWS
+            MediaPlayer.Volume = .1f;
             string[] filePaths = Directory.GetFiles(@"Content\Music\", "*.mp3");
             songs = new List<Song>();
             foreach (string filepath in filePaths)
@@ -297,6 +301,7 @@ namespace Tanto_Cuore
                     playArea.drawPlayArea(gameTime, spriteBatch);
                     break;
                 case settings:
+                    drawSettingsScreen(gameTime, spriteBatch);
                     break;
                 case resultsScreen:
                     drawResultsScreen(gameTime);
@@ -311,6 +316,45 @@ namespace Tanto_Cuore
             // TODO: Add your drawing code here
 
             base.Draw(gameTime);
+        }
+
+        private void drawSettingsScreen(GameTime gameTime, SpriteBatch spriteBatch)
+        {
+            spriteBatch.Begin();
+            spriteBatch.DrawString(font, "Settings Menu", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Settings Menu").X / 2, 125), Color.White);
+            if (soundOptionSelection == 0)
+            {
+                spriteBatch.DrawString(font, "Music is Muted: " + MediaPlayer.IsMuted, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Music is Muted: " + MediaPlayer.IsMuted).X / 2, 145), Color.Red);
+            }
+            else
+            {
+                spriteBatch.DrawString(font, "Music is Muted: " + MediaPlayer.IsMuted, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Music is Muted: " + MediaPlayer.IsMuted).X / 2, 145), Color.White);
+            }
+            if (soundOptionSelection == 1)
+            {
+                spriteBatch.DrawString(font, "Music Volume: " + (int)(MediaPlayer.Volume * 100), new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Music Volume: " + (int)(MediaPlayer.Volume * 100)).X / 2, 165), Color.Red);
+            }
+            else
+            {
+                spriteBatch.DrawString(font, "Music Volume: " + (int)(MediaPlayer.Volume * 100), new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Music Volume: " + (int)(MediaPlayer.Volume * 100)).X / 2, 165), Color.White);
+            }
+            if (soundOptionSelection == 2)
+            {
+                spriteBatch.DrawString(font, "Sound FXs Volume: " + soundFXVolume, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + soundFXVolume).X / 2, 185), Color.Red);
+            }
+            else
+            {
+                spriteBatch.DrawString(font, "Sound FXs Volume: " + soundFXVolume, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + soundFXVolume).X / 2, 185), Color.White);
+            }
+            if (soundOptionSelection == 3)
+            {
+                spriteBatch.DrawString(font, "Return", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Return").X / 2, 205), Color.Red);
+            }
+            else
+            {
+                spriteBatch.DrawString(font, "Return", new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Return").X / 2, 205), Color.White);
+            }
+            spriteBatch.End();
         }
 
         private void drawGeneralMaidReplacementScreen(GameTime gameTime)
@@ -845,7 +889,79 @@ namespace Tanto_Cuore
 
         private void handleSettingsMenu(KeyboardState keyboard, GamePadState gamepad)
         {
-            
+            if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
+                    (keyboard.IsKeyDown(Keys.W) && !keyboardOld.IsKeyDown(Keys.W)) ||
+                    (gamepad.ThumbSticks.Left.Y > 0 && !(gamepadOld.ThumbSticks.Left.Y > 0)))
+            {
+                soundOptionSelection--;
+                if (soundOptionSelection < 0)
+                {
+                    soundOptionSelection = soundOptionSelectionNumber - 1;
+                }
+            }
+            if ((keyboard.IsKeyDown(Keys.Left) && !keyboardOld.IsKeyDown(Keys.Left)) ||
+                (ButtonState.Pressed == gamepad.DPad.Left && !(ButtonState.Pressed == gamepadOld.DPad.Left)) ||
+                (keyboard.IsKeyDown(Keys.A) && !keyboardOld.IsKeyDown(Keys.A)) ||
+                (gamepad.ThumbSticks.Left.X < 0 && !(gamepadOld.ThumbSticks.Left.X < 0)))
+            {
+                if (soundOptionSelection == 1)
+                {
+                    MediaPlayer.Volume -= 0.10000000000000f;
+                    if (MediaPlayer.Volume < 0)
+                    {
+                        MediaPlayer.Volume = 0;
+                    }
+                }
+            }
+
+            if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
+                    (ButtonState.Pressed == gamepad.DPad.Right && !(ButtonState.Pressed == gamepadOld.DPad.Right)) ||
+                    (keyboard.IsKeyDown(Keys.D) && !keyboardOld.IsKeyDown(Keys.D)) ||
+                    (gamepad.ThumbSticks.Left.X > 0 && !(gamepadOld.ThumbSticks.Left.X > 0)))
+            {
+                if (soundOptionSelection == 1)
+                {
+                    MediaPlayer.Volume += 0.10000000000000f;
+                    if (MediaPlayer.Volume > 1)
+                    {
+                        MediaPlayer.Volume = 1;
+                    }
+                }
+            }
+            if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
+                (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
+                (keyboard.IsKeyDown(Keys.S) && !keyboardOld.IsKeyDown(Keys.S)) ||
+                (gamepad.ThumbSticks.Left.Y < 0 && !(gamepadOld.ThumbSticks.Left.Y < 0)))
+            {
+
+                soundOptionSelection++;
+                if (soundOptionSelection > soundOptionSelectionNumber + 1)
+                {
+                    soundOptionSelection = 0;
+                }
+            }
+
+            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+            {
+                if (soundOptionSelection == 0)
+                {
+                    if (MediaPlayer.IsMuted)
+                    {
+                        MediaPlayer.IsMuted = false;
+                    }
+                    else
+                    {
+                        MediaPlayer.IsMuted = true;
+                    }
+                }
+
+                if (soundOptionSelection == 3)
+                {
+                    screenNumber = 0;
+                }
+            }
         }
 
         private void handleGeneralMaidReplacement(KeyboardState keyboard, GamePadState gamepad)
@@ -1262,7 +1378,7 @@ namespace Tanto_Cuore
             {
                 string title = "IP Adress";
                 string description = "Enter the IP Adress you want to connect to";
-                string defaultText = "0.0.0.0";
+                string defaultText = "192.168.0.0";
                 string IPAdress = "";
                 if (!Guide.IsVisible)
                 {

@@ -79,6 +79,7 @@ namespace Tanto_Cuore
         bool isServer = false;
         bool onlineControl = true;
         int chunk = 0;
+        int miniChunk = 0;
 #if WINDOWS
         internal static Socket sender;
         internal static Socket handler;
@@ -234,13 +235,11 @@ namespace Tanto_Cuore
             {
                 isServer = true;
                 handler = Game1.handler;
-                handler.ReceiveTimeout = 1000;
                 handler.NoDelay = true;
             }
             else
             {
                 sender = Game1.sender;
-                sender.ReceiveTimeout = 1000;
                 sender.NoDelay = true;
             }
             for (int index = 0; index < numberOfPlayers; index++)
@@ -307,13 +306,11 @@ namespace Tanto_Cuore
             {
                 isServer = true;
                 handler = Game1.handler;
-                handler.ReceiveTimeout = 1000;
                 handler.NoDelay = true;
             }
             else
             {
                 sender = Game1.sender;
-                sender.ReceiveTimeout = 1000;
                 sender.NoDelay = true;
             }
             for (int index = 0; index < numberOfPlayers; index++)
@@ -1344,35 +1341,38 @@ namespace Tanto_Cuore
                 byte[] msg;
                 string MSG = "";
                 int bytesRec;
-                byte[] mode = new byte[2];
-                if (playerList[activePlayer].playerIsOnline)
+                byte[] mode = new byte[1];
+                if (!onlineControl)
                 {
-                    byte[] bytes = new byte[20240];
+                    byte[] bytes = new byte[80240];
                     if (isServer)
                     {
-                        Receive(handler, bytes, 0, 4, 10000);
-                        Receive(handler, mode, 0, 2, 10000);
+                        Receive(handler, bytes, 0, 4, 100000);
+                        Receive(handler, mode, 0, 1, 100000);
                         bytesRec = BitConverter.ToInt32(bytes, 0);
-                        Receive(handler, bytes, 0, bytesRec, 10000);
+                        Receive(handler, bytes, 0, bytesRec, 100000);
 
                     }
                     else
                     {
-                        Receive(sender, bytes, 0, 4, 10000);
-                        Receive(sender, mode, 0, 2, 10000);
+                        Receive(sender, bytes, 0, 4, 100000);
+                        Receive(sender, mode, 0, 1, 100000);
                         bytesRec = BitConverter.ToInt32(bytes, 0);
-                        Receive(sender, bytes, 0, bytesRec, 10000);
+                        Receive(sender, bytes, 0, bytesRec, 100000);
                     }
-                    chunk = mode[1]-1;
-                    if (chunk < 0)
-                    {
-                        chunk = numberOfPlayers + 1;
-                    }
+                    //chunk = mode[1]-1;
+                    //if (chunk < 0)
+                    //{
+                    //    chunk = numberOfPlayers + 1;
+                    //}
                     Game1.data = Encoding.ASCII.GetString(bytes, 0, bytesRec);
                     //Game1.data = new String(Game1.data.ToCharArray(), Game1.data.IndexOf("\n")+2, Game1.data.LastIndexOf("<EOF>") - Game1.data.IndexOf("\n"));
                     if (mode[0] == 1)
                     {
                         fullMessageRead(Game1.data);
+                        chunk = 0;
+                        miniChunk = 0;
+                        onlineControl = true;
                     }
                     else if (mode[0] == 0)
                     {
@@ -1395,20 +1395,20 @@ namespace Tanto_Cuore
                     byte[] length = new byte[1024];
                     length = BitConverter.GetBytes(MSG.Length);
                     mode[0] = 0;
-                    mode[1] = (byte)chunk;
+                    //mode[1] = (byte)chunk;
                     if (isServer)
                     {
                         //bytesSent = handler.Send(msg);
-                        Send(handler, length, 0, 4, 10000);
-                        Send(handler, mode, 0, 2, 10000);
-                        Send(handler, msg, 0, MSG.Length, 10000);
+                        Send(handler, length, 0, 4, 100000);
+                        Send(handler, mode, 0, 1, 100000);
+                        Send(handler, msg, 0, MSG.Length, 100000);
                     }
                     else
                     {
                         //bytesSent = sender.Send(msg);
-                        Send(sender, length, 0, 4, 10000);
-                        Send(sender, mode, 0, 2, 10000);
-                        Send(sender, msg, 0, MSG.Length, 10000);
+                        Send(sender, length, 0, 4, 100000);
+                        Send(sender, mode, 0, 1, 100000);
+                        Send(sender, msg, 0, MSG.Length, 100000);
                     }
                     if (!discard3LoveToRemoveIllnessModeBool && !lookAtRandomCardInAnotherPlayersHandAndSwapModeBool && !moveEventCardToAnotherPlayersPrivateQuartersModeBool && !discardHandToAddIllnessesToOneMaidModeBool && !loveOrEmploymentChoiceBool && !selectPlayerModeBool && !selectEventModeBool && !selectDiscardModeBool && !selectDeckModeBool && !selectChamberMaidModeBool && !decideToDiscardForServingsModeBool && !exchangeModeBool && !playerList[activePlayer].playerIsAI)
                     {
@@ -1729,294 +1729,396 @@ namespace Tanto_Cuore
                 {
                     privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));
                 }
+                if (words[26 + numberOfCardsInPrivateMaidsPile] == "0")
+                {
+                    onlineControl = true;
+                }
+                else
+                {
+                    onlineControl = false;
+                }
+                discardPhase = Convert.ToInt32(words[27 + numberOfCardsInPrivateMaidsPile]);
                 chunk++;
             }
             else if (chunk == 1)
             {
-                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].deck.removeAll();
-                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                if (miniChunk == 0)
                 {
-                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDeck;
-                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
-                {
-                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDiscard;
-                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].hand.removeAll();
-                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
-                {
-                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
-                }
-                totalIndexOffset += numberOfCardsInHand;
-                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].playedCards = new List<Card>();
-                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
-                {
-                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
-                }
-                totalIndexOffset += numberOfPlayedCards;
-                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
-                totalIndexOffset++;
-                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].privateQuarters.RemoveAll();
-                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
-                    {
-                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
-                    }
-                }
-                totalIndexOffset += numberOfMaidsInPrivateQuarters;
-                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
+                    playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].deck.removeAll();
+                    for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
                     {
-                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
                     }
+                    totalIndexOffset += numberOfCardsInDeck;
+                    miniChunk++;
                 }
-                chunk++;
+                else if (miniChunk == 1)
+                {
+                    int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                    {
+                        playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInDiscard;
+                    miniChunk++;
+                }
+                else if (miniChunk == 2)
+                {
+                    int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].hand.removeAll();
+                    for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                    {
+                        playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInHand;
+                    miniChunk++;
+                }
+                else if (miniChunk == 3)
+                {
+                    int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].playedCards = new List<Card>();
+                    for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                    {
+                        playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                    }
+                    totalIndexOffset += numberOfPlayedCards;
+                    miniChunk++;
+                }
+                else if (miniChunk == 4)
+                {
+                    playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                    totalIndexOffset++;
+                    int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].privateQuarters.RemoveAll();
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                        }
+                    }
+                    totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                    miniChunk++;
+                }
+                else if (miniChunk == 5)
+                {
+                    int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        }
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                }
             }
             else if (chunk == 2)
             {
-                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].deck.removeAll();
-                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                if (miniChunk == 0)
                 {
-                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDeck;
-                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
-                {
-                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDiscard;
-                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].hand.removeAll();
-                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
-                {
-                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
-                }
-                totalIndexOffset += numberOfCardsInHand;
-                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].playedCards = new List<Card>();
-                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
-                {
-                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
-                }
-                totalIndexOffset += numberOfPlayedCards;
-                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
-                totalIndexOffset++;
-                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].privateQuarters.RemoveAll();
-                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
-                    {
-                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
-                    }
-                }
-                totalIndexOffset += numberOfMaidsInPrivateQuarters;
-                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
+                    playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].deck.removeAll();
+                    for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
                     {
-                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
                     }
+                    totalIndexOffset += numberOfCardsInDeck;
+                    miniChunk++;
                 }
-                chunk++;
-                if (chunk > numberOfPlayers)
+                else if (miniChunk == 1)
                 {
-                    chunk = 0;
+                    int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                    {
+                        playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInDiscard;
+                    miniChunk++;
+                }
+                else if (miniChunk == 2)
+                {
+                    int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].hand.removeAll();
+                    for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                    {
+                        playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInHand;
+                    miniChunk++;
+                }
+                else if (miniChunk == 3)
+                {
+                    int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].playedCards = new List<Card>();
+                    for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                    {
+                        playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                    }
+                    totalIndexOffset += numberOfPlayedCards;
+                    miniChunk++;
+                }
+                else if (miniChunk == 4)
+                {
+                    playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                    totalIndexOffset++;
+                    int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].privateQuarters.RemoveAll();
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                        }
+                    }
+                    totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                    miniChunk++;
+                }
+                else if (miniChunk == 5)
+                {
+                    int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        }
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                    if (chunk > numberOfPlayers)
+                    {
+                        chunk = 0;
+                    }
                 }
             }
             else if (chunk == 3)
             {
-                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].deck.removeAll();
-                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+
+                if (miniChunk == 0)
                 {
-                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDeck;
-                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
-                {
-                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDiscard;
-                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].hand.removeAll();
-                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
-                {
-                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
-                }
-                totalIndexOffset += numberOfCardsInHand;
-                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].playedCards = new List<Card>();
-                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
-                {
-                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
-                }
-                totalIndexOffset += numberOfPlayedCards;
-                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
-                totalIndexOffset++;
-                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].privateQuarters.RemoveAll();
-                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
-                    {
-                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
-                    }
-                }
-                totalIndexOffset += numberOfMaidsInPrivateQuarters;
-                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
+                    playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].deck.removeAll();
+                    for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
                     {
-                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
                     }
+                    totalIndexOffset += numberOfCardsInDeck;
+                    miniChunk++;
                 }
-                chunk++;
-                if (chunk > numberOfPlayers)
+                else if (miniChunk == 1)
                 {
-                    chunk = 0;
+                    int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                    {
+                        playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInDiscard;
+                    miniChunk++;
+                }
+                else if (miniChunk == 2)
+                {
+                    int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].hand.removeAll();
+                    for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                    {
+                        playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInHand;
+                    miniChunk++;
+                }
+                else if (miniChunk == 3)
+                {
+                    int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].playedCards = new List<Card>();
+                    for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                    {
+                        playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                    }
+                    totalIndexOffset += numberOfPlayedCards;
+                    miniChunk++;
+                }
+                else if (miniChunk == 4)
+                {
+                    playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                    totalIndexOffset++;
+                    int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].privateQuarters.RemoveAll();
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                        }
+                    }
+                    totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                    miniChunk++;
+                }
+                else if (miniChunk == 5)
+                {
+                    int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        }
+                    }
+                    miniChunk = 0;
+                    chunk++;
                 }
             }
             else if (chunk == 4)
             {
-                playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].deck.removeAll();
-                for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
+                if (miniChunk == 0)
                 {
-                    playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDeck;
-                int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
-                {
-                    playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
-                }
-                totalIndexOffset += numberOfCardsInDiscard;
-                int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].hand.removeAll();
-                for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
-                {
-                    playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
-                }
-                totalIndexOffset += numberOfCardsInHand;
-                int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].playedCards = new List<Card>();
-                for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
-                {
-                    playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
-                }
-                totalIndexOffset += numberOfPlayedCards;
-                playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
-                totalIndexOffset++;
-                int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                playerList[playerIndex].privateQuarters.RemoveAll();
-                for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                    playerList[playerIndex].love = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
-                    {
-                        playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
-                    }
-                }
-                totalIndexOffset += numberOfMaidsInPrivateQuarters;
-                int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
-                totalIndexOffset++;
-                for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
-                {
-                    playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                    playerList[playerIndex].servings = Convert.ToInt32(words[totalIndexOffset]);
                     totalIndexOffset++;
-                    int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
-                    for (int index = 0; index < numberOfIllnesses; index++)
+                    playerList[playerIndex].employments = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    int numberOfCardsInDeck = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].deck.removeAll();
+                    for (int deckIndex = 0; deckIndex < numberOfCardsInDeck; deckIndex++)
                     {
-                        playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        playerList[playerIndex].deck.addCardToDeck(new Card(Convert.ToInt32(words[totalIndexOffset + deckIndex])));
                     }
+                    totalIndexOffset += numberOfCardsInDeck;
+                    miniChunk++;
                 }
-                chunk++;
-                if (chunk > numberOfPlayers)
+                else if (miniChunk == 1)
                 {
-                    chunk = 0;
+                    int numberOfCardsInDiscard = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int discardIndex = 0; discardIndex < numberOfCardsInDiscard; discardIndex++)
+                    {
+                        playerList[playerIndex].deck.addCardToDiscardPile(new Card(Convert.ToInt32(words[totalIndexOffset + discardIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInDiscard;
+                    miniChunk++;
+                }
+                else if (miniChunk == 2)
+                {
+                    int numberOfCardsInHand = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].hand.removeAll();
+                    for (int handIndex = 0; handIndex < numberOfCardsInHand; handIndex++)
+                    {
+                        playerList[playerIndex].hand.addCardToHand(new Card(Convert.ToInt32(words[totalIndexOffset + handIndex])));
+                    }
+                    totalIndexOffset += numberOfCardsInHand;
+                    miniChunk++;
+                }
+                else if (miniChunk == 3)
+                {
+                    int numberOfPlayedCards = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].playedCards = new List<Card>();
+                    for (int playedIndex = 0; playedIndex < numberOfPlayedCards; playedIndex++)
+                    {
+                        playerList[playerIndex].playedCards.Add(new Card(Convert.ToInt32(words[totalIndexOffset + playedIndex])));
+                    }
+                    totalIndexOffset += numberOfPlayedCards;
+                    miniChunk++;
+                }
+                else if (miniChunk == 4)
+                {
+                    playerList[playerIndex].privateQuarters.setNumberOfBadHabits(Convert.ToInt32(words[totalIndexOffset]));
+                    totalIndexOffset++;
+                    int numberOfMaidsInPrivateQuarters = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    playerList[playerIndex].privateQuarters.RemoveAll();
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < numberOfMaidsInPrivateQuarters; chamberMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + chamberMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToCard(chamberMaidIndex, new Card(29));
+                        }
+                    }
+                    totalIndexOffset += numberOfMaidsInPrivateQuarters;
+                    miniChunk++;
+                }
+                else if (miniChunk == 5)
+                {
+                    int numberOfPrivateMaids = Convert.ToInt32(words[totalIndexOffset]);
+                    totalIndexOffset++;
+                    for (int privateMaidIndex = 0; privateMaidIndex < numberOfPrivateMaids; privateMaidIndex++)
+                    {
+                        playerList[playerIndex].privateQuarters.addCardToPrivateQuarters(new Card(Convert.ToInt32(words[totalIndexOffset + privateMaidIndex])));
+                        totalIndexOffset++;
+                        int numberOfIllnesses = Convert.ToInt32(words[totalIndexOffset + privateMaidIndex]);
+                        for (int index = 0; index < numberOfIllnesses; index++)
+                        {
+                            playerList[playerIndex].privateQuarters.addIllnessToPrivateMaidAt(privateMaidIndex, new Card(29));
+                        }
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                    if (chunk > numberOfPlayers)
+                    {
+                        chunk = 0;
+                    }
                 }
             }
         }
@@ -2113,182 +2215,291 @@ namespace Tanto_Cuore
                 {
                     MSG += privateMaidPile.lookAtCardAt(index).getCardNumber() + ",";
                 }
+                if (onlineControl == false)
+                {
+                    MSG += "0,";
+                }
+                else
+                {
+                    MSG += "1,";
+                }
+                MSG += discardPhase + ",";
                 chunk++;
                 return MSG;
             }
             else if (chunk == 1)
             {
-                string MSG = playerList[playerIndex].love + ",";
-                MSG += playerList[playerIndex].servings + ",";
-                MSG += playerList[playerIndex].employments + ",";
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
-                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                string MSG = "";
+                if (miniChunk == 0)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].love + ",";
+                    MSG += playerList[playerIndex].servings + ",";
+                    MSG += playerList[playerIndex].employments + ",";
+                    MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                    for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
-                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                else if (miniChunk == 1)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                    for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
-                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                else if (miniChunk == 2)
                 {
-                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                    for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                    {
+                        MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].playedCards.Count + ",";
-                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                else if (miniChunk == 3)
                 {
-                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].playedCards.Count + ",";
+                    for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                    {
+                        MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
-                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                else if (miniChunk == 4)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                    MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
-                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                else if (miniChunk == 5)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                    for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk = 0;
+                    chunk++;
                 }
-                chunk++;
                 return MSG;
             }
             else if (chunk == 2)
             {
-                string MSG = playerList[playerIndex].love + ",";
-                MSG += playerList[playerIndex].servings + ",";
-                MSG += playerList[playerIndex].employments + ",";
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
-                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                string MSG = "";
+                if (miniChunk == 0)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].love + ",";
+                    MSG += playerList[playerIndex].servings + ",";
+                    MSG += playerList[playerIndex].employments + ",";
+                    MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                    for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
-                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                else if (miniChunk == 1)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                    for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
-                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                else if (miniChunk == 2)
                 {
-                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                    for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                    {
+                        MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].playedCards.Count + ",";
-                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                else if (miniChunk == 3)
                 {
-                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].playedCards.Count + ",";
+                    for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                    {
+                        MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
-                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                else if (miniChunk == 4)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                    MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
-                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                else if (miniChunk == 5)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
-                }
-                chunk++;
-                if (chunk > numberOfPlayers)
-                {
-                    chunk = 0;
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                    for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                    if (chunk > numberOfPlayers)
+                    {
+                        chunk = 0;
+                    }
                 }
                 return MSG;
             }
             else if (chunk == 3)
             {
-                string MSG = playerList[playerIndex].love + ",";
-                MSG += playerList[playerIndex].servings + ",";
-                MSG += playerList[playerIndex].employments + ",";
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
-                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                string MSG = "";
+                if (miniChunk == 0)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].love + ",";
+                    MSG += playerList[playerIndex].servings + ",";
+                    MSG += playerList[playerIndex].employments + ",";
+                    MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                    for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
-                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                else if (miniChunk == 1)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                    for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
-                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                else if (miniChunk == 2)
                 {
-                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                    for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                    {
+                        MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].playedCards.Count + ",";
-                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                else if (miniChunk == 3)
                 {
-                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].playedCards.Count + ",";
+                    for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                    {
+                        MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
-                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                else if (miniChunk == 4)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                    MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
-                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                else if (miniChunk == 5)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
-                }
-                chunk++;
-                if (chunk > numberOfPlayers)
-                {
-                    chunk = 0;
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                    for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                    if (chunk > numberOfPlayers)
+                    {
+                        chunk = 0;
+                    }
                 }
                 return MSG;
             }
             else if (chunk == 4)
             {
-                string MSG = playerList[playerIndex].love + ",";
-                MSG += playerList[playerIndex].servings + ",";
-                MSG += playerList[playerIndex].employments + ",";
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
-                for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                string MSG = "";
+                if (miniChunk == 0)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].love + ",";
+                    MSG += playerList[playerIndex].servings + ",";
+                    MSG += playerList[playerIndex].employments + ",";
+                    MSG += playerList[playerIndex].deck.getNumberOfCardsRemaining() + ",";
+                    for (int deckIndex = 0; deckIndex < playerList[playerIndex].deck.getNumberOfCardsRemaining(); deckIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAt(deckIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
-                for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                else if (miniChunk == 1)
                 {
-                    MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard() + ",";
+                    for (int discardIndex = 0; discardIndex < playerList[playerIndex].deck.getNumberOfCardsRemainingInDiscard(); discardIndex++)
+                    {
+                        MSG += playerList[playerIndex].deck.lookAtCardAtInDiscard(discardIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].hand.numberOfCardsInHand() + ",";
-                for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                else if (miniChunk == 2)
                 {
-                    MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].hand.numberOfCardsInHand() + ",";
+                    for (int handIndex = 0; handIndex < playerList[playerIndex].hand.numberOfCardsInHand(); handIndex++)
+                    {
+                        MSG += playerList[playerIndex].hand.lookAtCardInHand(handIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].playedCards.Count + ",";
-                for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                else if (miniChunk == 3)
                 {
-                    MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    MSG = playerList[playerIndex].playedCards.Count + ",";
+                    for (int playedIndex = 0; playedIndex < playerList[playerIndex].playedCards.Count; playedIndex++)
+                    {
+                        MSG += playerList[playerIndex].playedCards.ElementAt(playedIndex).getCardNumber() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
-                for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                else if (miniChunk == 4)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfBadHabits() + ",";
+                    MSG += playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters() + ",";
+                    for (int chamberMaidIndex = 0; chamberMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfMaidsInPrivateQuarters(); chamberMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.chamberMaidAt(chamberMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk++;
                 }
-                MSG += playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
-                for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                else if (miniChunk == 5)
                 {
-                    MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
-                        + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
-                }
-                chunk++;
-                if (chunk > numberOfPlayers)
-                {
-                    chunk = 0;
+                    MSG = playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids() + ",";
+                    for (int privateMaidIndex = 0; privateMaidIndex < playerList[playerIndex].privateQuarters.getNumberOfPrivateMaids(); privateMaidIndex++)
+                    {
+                        MSG += playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getCardNumber() + ","
+                            + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
+                    }
+                    miniChunk = 0;
+                    chunk++;
+                    if (chunk > numberOfPlayers)
+                    {
+                        chunk = 0;
+                    }
                 }
                 return MSG;
             }
@@ -3119,18 +3330,14 @@ namespace Tanto_Cuore
                                     }
                                 }
                             }
-                            int bytesSent;
-                            string MSG = discardPhase + ",";
-                            byte[] msg = Encoding.ASCII.GetBytes(MSG);
-                            if (isServer)
+                            if (activePlayer == 0 && playerList[1].playerIsOnline)
                             {
-                                bytesSent = Game1.handler.Send(msg);
+                                onlineControl = false;
                             }
-                            else
+                            else if (activePlayer != 0 && playerList[0].playerIsOnline)
                             {
-                                bytesSent = Game1.sender.Send(msg);
+                                onlineControl = false;
                             }
-                            onlineControl = false;
                         }
                         else if (discardPhase == 2)
                         {
@@ -3213,18 +3420,14 @@ namespace Tanto_Cuore
                                     }
                                 }
                             }
-                            int bytesSent;
-                            string MSG = discardPhase + ",";
-                            byte[] msg = Encoding.ASCII.GetBytes(MSG);
-                            if (isServer)
+                            if ((activePlayer == 0 || activePlayer == 1) && playerList[2].playerIsOnline)
                             {
-                                bytesSent = Game1.handler.Send(msg);
+                                onlineControl = false;
                             }
-                            else
+                            else if (activePlayer != 0 && activePlayer != 1 && playerList[3].playerIsOnline)
                             {
-                                bytesSent = Game1.sender.Send(msg);
+                                onlineControl = false;
                             }
-                            onlineControl = false;
                         }
                         else if (discardPhase == 3)
                         {
@@ -3263,18 +3466,14 @@ namespace Tanto_Cuore
                                     }
                                 }
                             }
-                            int bytesSent;
-                            string MSG = discardPhase + ",";
-                            byte[] msg = Encoding.ASCII.GetBytes(MSG);
-                            if (isServer)
+                            if ((activePlayer == 0 || activePlayer == 1 || activePlayer == 2) && playerList[3].playerIsOnline)
                             {
-                                bytesSent = Game1.handler.Send(msg);
+                                onlineControl = false;
                             }
-                            else
+                            else if (activePlayer != 0 && activePlayer != 1 && activePlayer != 2 && playerList[2].playerIsOnline)
                             {
-                                bytesSent = Game1.sender.Send(msg);
+                                onlineControl = false;
                             }
-                            onlineControl = false;
                         }
                         else if (discardPhase == 4)
                         {
@@ -3295,30 +3494,13 @@ namespace Tanto_Cuore
                     }
                 }
             }
-            else
-            {
-                int bytesRec;
-                byte[] bytes = new byte[1024];
-                if (isServer)
-                {
-                    bytesRec = Game1.handler.Receive(bytes);
-                }
-                else
-                {
-                    bytesRec = Game1.sender.Receive(bytes);
-                }
-                Game1.data = Encoding.ASCII.GetString(bytes, 0, bytesRec);
-                string[] words = Game1.data.Split(',');
-                discardPhase = Convert.ToInt32(words[0]);
-                onlineControl = true;
-            }
         }
 #endif
 
         private string fullMessageCreate(int firstNum)
         {
             chunk = 0;
-            string MSG = "\n,"+firstNum + ",";
+            string MSG = firstNum + ",";
             MSG += currentCardNumber + "," + currentRowNumber + ","
                 + currentPhase + "," + oneLove.getNumberOfRemainingCards() + ","
                 + twoLove.getNumberOfRemainingCards() + ","
@@ -3444,7 +3626,6 @@ namespace Tanto_Cuore
                         + playerList[playerIndex].privateQuarters.privateMaidAt(privateMaidIndex).getNumberOfIllnesses() + ",";
                 }
             }
-            MSG += "<EOF>";
             return MSG;
         }
 
@@ -5659,20 +5840,22 @@ namespace Tanto_Cuore
                     length = BitConverter.GetBytes(MSG.Length);
                     byte[] mode = new byte[1];
                     mode[0] = 1;
-                    mode[1] = (byte)chunk;
+                    //mode[1] = (byte)chunk;
+                    chunk = 0;
+                    miniChunk = 0;
                     if (isServer)
                     {
                         //bytesSent = handler.Send(msg);
-                        Send(handler, length, 0, 4, 10000);
-                        Send(handler, mode, 0, 2, 10000);
-                        Send(handler, msg, 0, MSG.Length, 10000);
+                        Send(handler, length, 0, 4, 100000);
+                        Send(handler, mode, 0, 1, 100000);
+                        Send(handler, msg, 0, MSG.Length, 100000);
                     }
                     else
                     {
                         //bytesSent = sender.Send(msg);
-                        Send(sender, length, 0, 4, 10000);
-                        Send(sender, mode, 0, 2, 10000);
-                        Send(sender, msg, 0, MSG.Length, 10000);
+                        Send(sender, length, 0, 4, 100000);
+                        Send(sender, mode, 0, 1, 100000);
+                        Send(sender, msg, 0, MSG.Length, 100000);
                     }
                     if (playerList[activePlayer].playerIsOnline)
                     {

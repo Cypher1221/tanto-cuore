@@ -236,11 +236,13 @@ namespace Tanto_Cuore
                 isServer = true;
                 handler = Game1.handler;
                 handler.NoDelay = true;
+                onlineControl = true;
             }
             else
             {
                 sender = Game1.sender;
                 sender.NoDelay = true;
+                onlineControl = false;
             }
             for (int index = 0; index < numberOfPlayers; index++)
             {
@@ -307,11 +309,13 @@ namespace Tanto_Cuore
                 isServer = true;
                 handler = Game1.handler;
                 handler.NoDelay = true;
+                onlineControl = true;
             }
             else
             {
                 sender = Game1.sender;
                 sender.NoDelay = true;
+                onlineControl = false;
             }
             for (int index = 0; index < numberOfPlayers; index++)
             {
@@ -1344,7 +1348,7 @@ namespace Tanto_Cuore
                 byte[] mode = new byte[1];
                 if (!onlineControl)
                 {
-                    byte[] bytes = new byte[80240];
+                    byte[] bytes = new byte[6144];
                     if (isServer)
                     {
                         Receive(handler, bytes, 0, 4, 100000);
@@ -1372,7 +1376,14 @@ namespace Tanto_Cuore
                         fullMessageRead(Game1.data);
                         chunk = 0;
                         miniChunk = 0;
-                        onlineControl = true;
+                        if (!playerList[activePlayer].playerIsOnline)
+                        {
+                            onlineControl = true;
+                        }
+                        if (emptiedPiles == 2)
+                        {
+                            endGame();
+                        }
                     }
                     else if (mode[0] == 0)
                     {
@@ -1724,7 +1735,7 @@ namespace Tanto_Cuore
                 }
                 emptiedPiles = Convert.ToInt32(words[24]);
                 int numberOfCardsInPrivateMaidsPile = Convert.ToInt32(words[25]);
-                privateMaidPile.setNumberOfCardsTo(0, 0);
+                privateMaidPile.clear();
                 for (int privateMaidPileIndex = 0; privateMaidPileIndex < numberOfCardsInPrivateMaidsPile; privateMaidPileIndex++)
                 {
                     privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));
@@ -2746,7 +2757,7 @@ namespace Tanto_Cuore
             }
             emptiedPiles = Convert.ToInt32(words[24]);
             int numberOfCardsInPrivateMaidsPile = Convert.ToInt32(words[25]);
-            privateMaidPile.setNumberOfCardsTo(0, 0);
+            privateMaidPile.clear();
             for (int privateMaidPileIndex = 0; privateMaidPileIndex < numberOfCardsInPrivateMaidsPile; privateMaidPileIndex++)
             {
                 privateMaidPile.addCard(new Card(Convert.ToInt32(words[26 + privateMaidPileIndex])));

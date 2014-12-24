@@ -94,5 +94,10 @@ namespace Tanto_Cuore
                 }
             }
         }
+
+        internal void clear()
+        {
+            pile.Clear();
+        }
     }
 }

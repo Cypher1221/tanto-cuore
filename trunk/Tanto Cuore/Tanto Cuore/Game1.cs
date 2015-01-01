@@ -86,13 +86,13 @@ namespace Tanto_Cuore
         int soundOptionSelection = 0;
         const int soundOptionSelectionNumber = 4;
 #endif
-
+        double SettingsStartTime = 0;
         static public Texture2D[] cardPicturesFull;
         static public Texture2D[] cardPicturesMini;
         static public Texture2D cardBack;
+        static public SoundEffect cardNoise;
 
         public int stage { get; set; }
-        public string soundFXVolume { get; set; }
 
         KeyboardState keyboardOld;
         MouseState mouseOld;
@@ -130,12 +130,7 @@ namespace Tanto_Cuore
                 Song song = (Song)ctor.Invoke(new object[] { filepath, @filepath, 0 });
                 songs.Add(song);
             }
-            if (songs.Count != 0)
-            {
-                rand = new Random();
-                int songNum = rand.Next(songs.Count);
-                MediaPlayer.Play(songs.ElementAt(songNum));
-            }
+            rand = new Random();
 #endif
             gamepadOld = new GamePadState();
             mouseOld = new MouseState();
@@ -243,6 +238,7 @@ namespace Tanto_Cuore
                 cardPicturesMini[index] = this.Content.Load<Texture2D>((index + 1) + "-mini");
             }
             cardBack = this.Content.Load<Texture2D>("cardBack");
+            cardNoise = this.Content.Load<SoundEffect>("240777__f4ngy__dealing-card");
         }
 
         /// <summary>
@@ -340,11 +336,11 @@ namespace Tanto_Cuore
             }
             if (soundOptionSelection == 2)
             {
-                spriteBatch.DrawString(font, "Sound FXs Volume: " + soundFXVolume, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + soundFXVolume).X / 2, 185), Color.Red);
+                spriteBatch.DrawString(font, "Sound FXs Volume: " + (int)(SoundEffect.MasterVolume * 100), new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + (int)(SoundEffect.MasterVolume * 100)).X / 2, 185), Color.Red);
             }
             else
             {
-                spriteBatch.DrawString(font, "Sound FXs Volume: " + soundFXVolume, new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + soundFXVolume).X / 2, 185), Color.White);
+                spriteBatch.DrawString(font, "Sound FXs Volume: " + (int)(SoundEffect.MasterVolume * 100), new Vector2(graphics.GraphicsDevice.Viewport.Width / 2 - font.MeasureString("Sound FXs Volume: " + (int)(SoundEffect.MasterVolume * 100)).X / 2, 185), Color.White);
             }
             if (soundOptionSelection == 3)
             {
@@ -816,10 +812,15 @@ namespace Tanto_Cuore
                 {
                     screenNumber = -1;
                     this.Exit();
+                    MediaPlayer.Stop();
                 }
                 if (screenNumber == 2)
                 {
                     stage = 0;
+                }
+                if (screenNumber == settings)
+                {
+                    lastScreen = mainMenu;
                 }
             }
         }
@@ -856,7 +857,7 @@ namespace Tanto_Cuore
             }
             else if (screenNumber == settings)
             {
-                handleSettingsMenu(keyboard, gamepad);
+                handleSettingsMenu(keyboard, gamepad, gameTime);
             }
             else
             {
@@ -882,12 +883,23 @@ namespace Tanto_Cuore
                     screenNumber = 0;
                 }
             }
+
+            if (keyboard.IsKeyDown(Keys.P) && !keyboardOld.IsKeyDown(Keys.P) ||
+                        gamepad.IsButtonDown(Buttons.Start) && !gamepadOld.IsButtonDown(Buttons.Start))
+            {
+                if (screenNumber != generalMaidReplacementScreen)
+                {
+                    lastScreen = screenNumber;
+                    screenNumber = settings;
+                    SettingsStartTime = gameTime.TotalGameTime.TotalSeconds;
+                }
+            }
             gamepadOld = gamepad;
             mouseOld = mouse;
             keyboardOld = keyboard;
         }
 
-        private void handleSettingsMenu(KeyboardState keyboard, GamePadState gamepad)
+        private void handleSettingsMenu(KeyboardState keyboard, GamePadState gamepad, GameTime gameTime)
         {
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                     (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
@@ -913,6 +925,14 @@ namespace Tanto_Cuore
                         MediaPlayer.Volume = 0;
                     }
                 }
+                if (soundOptionSelection == 2)
+                {
+                    SoundEffect.MasterVolume -= 0.1f;
+                    if (SoundEffect.MasterVolume < 0)
+                    {
+                        SoundEffect.MasterVolume = 0;
+                    }
+                }
             }
 
             if ((keyboard.IsKeyDown(Keys.Right) && !keyboardOld.IsKeyDown(Keys.Right)) ||
@@ -928,6 +948,14 @@ namespace Tanto_Cuore
                         MediaPlayer.Volume = 1;
                     }
                 }
+                if (soundOptionSelection == 2)
+                {
+                    SoundEffect.MasterVolume += 0.1f;
+                    if (SoundEffect.MasterVolume > 1)
+                    {
+                        SoundEffect.MasterVolume = 1;
+                    }
+                }
             }
             if ((keyboard.IsKeyDown(Keys.Down) && !keyboardOld.IsKeyDown(Keys.Down)) ||
                 (ButtonState.Pressed == gamepad.DPad.Down && !(ButtonState.Pressed == gamepadOld.DPad.Down)) ||
@@ -936,7 +964,7 @@ namespace Tanto_Cuore
             {
 
                 soundOptionSelection++;
-                if (soundOptionSelection > soundOptionSelectionNumber + 1)
+                if (soundOptionSelection >= soundOptionSelectionNumber)
                 {
                     soundOptionSelection = 0;
                 }
@@ -959,8 +987,12 @@ namespace Tanto_Cuore
 
                 if (soundOptionSelection == 3)
                 {
-                    screenNumber = 0;
+                    screenNumber = lastScreen;
                 }
+            }
+            if (gameTime.TotalGameTime.TotalSeconds - SettingsStartTime > 60)
+            {
+                screenNumber = lastScreen;
             }
         }
 
@@ -1359,6 +1391,7 @@ namespace Tanto_Cuore
                 else if (data.ElementAt(0) == '2')
                 {
                     done = true;
+                    handler.Shutdown(SocketShutdown.Both);
                 }
                 data = "";
                 if (gameStart)
@@ -1497,6 +1530,10 @@ namespace Tanto_Cuore
                 }
                 msg = Encoding.ASCII.GetBytes(MSG);
                 sender.Send(msg);
+                if (words[0] == "2")
+                {
+                    sender.Shutdown(SocketShutdown.Both);
+                }
                 data = "";
             }
 #endif

@@ -86,11 +86,19 @@ namespace Tanto_Cuore
 
         public void drawCard()
         {
+            if (!playerIsAI)
+            {
+                Game1.cardNoise.Play();
+            }
             hand.addCardToHand(deck.drawCard());
         }
 
         public void playCard(int handIndex)
         {
+            if (!playerIsAI)
+            {
+                Game1.cardNoise.Play();
+            }
             Card temp = hand.lookAtCardInHand(handIndex);
             if (temp.getCardNumber() > 2 && temp.getCardNumber() < 19 && servings >= 1)
             {

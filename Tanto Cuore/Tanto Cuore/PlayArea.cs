@@ -1394,6 +1394,11 @@ namespace Tanto_Cuore
                     {
                         selectDiscardModeInputOnline(keyboardOld, keyboard, gamepadOld, gamepad);
                     }
+                    if (keyboard.IsKeyDown(Keys.RightControl) && !keyboardOld.IsKeyDown(Keys.RightControl) ||
+                        gamepad.IsButtonDown(Buttons.Y) && !gamepadOld.IsButtonDown(Buttons.Y))
+                    {
+                        showBigCardMode = !showBigCardMode;
+                    }
                     MSG = "";
                 }
                 else
@@ -6014,6 +6019,19 @@ namespace Tanto_Cuore
                     gameIsTied = true;
                 }
             }
+#if WINDOWS
+            if (playerList[0].playerIsOnline || playerList[1].playerIsOnline)
+            {
+                if (!isServer)
+                {
+                    sender.Shutdown(SocketShutdown.Both);
+                }
+                else
+                {
+                    handler.Shutdown(SocketShutdown.Both);
+                }
+            }
+#endif
         }
 
         internal void discard3LoveToRemoveIllness()

@@ -613,6 +613,85 @@
       <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\cardBack.xnb</Output>
       <Time>2014-07-17T14:31:36.0625-07:00</Time>
     </Item>
+    <Item>
+      <Source>Music\00 - Ao~Iconoclast - Kotoko.mp3</Source>
+      <Name>Music\00 - Ao~Iconoclast - Kotoko</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\00 - Ao~Iconoclast - Kotoko.xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\00 - Ao~Iconoclast - Kotoko.wma</Extra>
+      <Time>2010-09-09T19:47:31.2175808-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].mp3</Source>
+      <Name>Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams]</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].wma</Extra>
+      <Time>2014-10-05T17:01:54-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\02 Red Like Roses (Red Trailer) [fea.mp3</Source>
+      <Name>Music\02 Red Like Roses (Red Trailer) [fea</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\02 Red Like Roses (Red Trailer) [fea.xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\02 Red Like Roses (Red Trailer) [fea.wma</Extra>
+      <Time>2014-10-05T17:02:06-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\08 I May Fall (feat. Casey Lee Willi.mp3</Source>
+      <Name>Music\08 I May Fall (feat. Casey Lee Willi</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\08 I May Fall (feat. Casey Lee Willi.xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\08 I May Fall (feat. Casey Lee Willi.wma</Extra>
+      <Time>2014-10-05T17:03:36-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\09 Red Like Roses - Part II (feat. C.mp3</Source>
+      <Name>Music\09 Red Like Roses - Part II (feat. C</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\09 Red Like Roses - Part II (feat. C.xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\09 Red Like Roses - Part II (feat. C.wma</Extra>
+      <Time>2014-10-05T17:03:50-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\12 Wings (feat. Casey Lee Williams).mp3</Source>
+      <Name>Music\12 Wings (feat. Casey Lee Williams)</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\12 Wings (feat. Casey Lee Williams).xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\12 Wings (feat. Casey Lee Williams).wma</Extra>
+      <Time>2014-10-05T17:04:38-07:00</Time>
+    </Item>
+    <Item>
+      <Source>Music\LOTR Compilation.mp3</Source>
+      <Name>Music\LOTR Compilation</Name>
+      <Importer>Mp3Importer</Importer>
+      <Processor>SongProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\LOTR Compilation.xnb</Output>
+      <Extra>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\LOTR Compilation.wma</Extra>
+      <Time>2014-01-02T12:12:10.671875-08:00</Time>
+    </Item>
+    <Item>
+      <Source>240777__f4ngy__dealing-card.wav</Source>
+      <Name>240777__f4ngy__dealing-card</Name>
+      <Importer>WavImporter</Importer>
+      <Processor>SoundEffectProcessor</Processor>
+      <Options>None</Options>
+      <Output>C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\240777__f4ngy__dealing-card.xnb</Output>
+      <Time>2014-12-28T22:48:05.0625-08:00</Time>
+    </Item>
     <BuildSuccessful>true</BuildSuccessful>
     <Settings>
       <TargetPlatform>Windows</TargetPlatform>

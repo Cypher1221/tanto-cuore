@@ -6013,8 +6013,9 @@ namespace Tanto_Cuore
                 if (VP[index].VP > VP[winner].VP)
                 {
                     winner = index;
+                    gameIsTied = false;
                 }
-                else if (VP[index].VP == indexOfPlayerWithMostColettes && index != winner)
+                else if (VP[index].VP == VP[winner].VP && index != 0)
                 {
                     gameIsTied = true;
                 }

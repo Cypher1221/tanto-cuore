@@ -109,12 +109,12 @@ namespace Tanto_Cuore
                     if (privateMaid().getCardNumber() == 28 && !gainedExtraCard)
                     {
                         drawsTemp++;
-                        gainedExtraCard = false;
+                        gainedExtraCard = true;
                     }
                     else if (privateMaid().getCardNumber() == 24 && !gainedExtraServing)
                     {
                         servings++;
-                        gainedExtraServing = false;
+                        gainedExtraServing = true;
                     }
                 }
                 int servingsTemp = temp.getServings();

@@ -221,3 +221,25 @@ C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cu
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\8-mini.png
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\9-mini.png
 C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\cardBack.bmp
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\00 - Ao~Iconoclast - Kotoko.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\02 Red Like Roses (Red Trailer) [fea.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\08 I May Fall (feat. Casey Lee Willi.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\09 Red Like Roses - Part II (feat. C.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\12 Wings (feat. Casey Lee Williams).xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\LOTR Compilation.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\240777__f4ngy__dealing-card.xnb
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\00 - Ao~Iconoclast - Kotoko.wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\02 Red Like Roses (Red Trailer) [fea.wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\08 I May Fall (feat. Casey Lee Willi.wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\09 Red Like Roses - Part II (feat. C.wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\12 Wings (feat. Casey Lee Williams).wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\LOTR Compilation.wma
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\00 - Ao~Iconoclast - Kotoko.mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\01 - This Will Be the Day (Rooster Teeth's Rwby) [feat. Casey Lee Williams].mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\02 Red Like Roses (Red Trailer) [fea.mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\08 I May Fall (feat. Casey Lee Willi.mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\09 Red Like Roses - Part II (feat. C.mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\12 Wings (feat. Casey Lee Williams).mp3
+C:\Documents and Settings\Cypher\My Documents\Tanto Cuore Major Project\Tanto Cuore\Tanto Cuore\bin\x86\Debug\Content\Music\LOTR Compilation.mp3

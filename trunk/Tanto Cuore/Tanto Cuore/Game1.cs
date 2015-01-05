@@ -27,7 +27,7 @@ namespace Tanto_Cuore
         SpriteBatch spriteBatch;
         int screenNumber = 0; //0 main screen, 1 single player setup, 2 multiplayer setup, 3 settings, 4 gamplay screen, 5 results screen
         int lastScreen = 0; //last screen that was loaded.
-        int currentMainMenuOption =0 ; //0 single player setup, 1 multiplayer setup, 2 settings, 3 exit game.
+        int currentMainMenuOption =0 ; //0 single player setup, 1 multiplayer setup, 2 settings, 3 controls, 3 exit game.
         const int mainMenu = 0;
         const int singlePlayerSetup = 1;
         const int multiPlayerSetup = 2;
@@ -36,7 +36,8 @@ namespace Tanto_Cuore
         const int resultsScreen = 5;
         const int generalMaidSelectionScreen = 6;
         const int generalMaidReplacementScreen = 7;
-        int numberOfMainMenuOptions = 4;
+        const int controlsScreen = 8;
+        int numberOfMainMenuOptions = 5;
         static public SpriteFont font;
         String[] mainMenuOptionsStrings;
         int currentSinglePlayerSetupMenuOption = 0; //0 beginner mode, 1 random mode, 2 edit general maids, 3 number of ai, 4 start, 5 return.
@@ -139,7 +140,8 @@ namespace Tanto_Cuore
             mainMenuOptionsStrings[singlePlayerSetup - 1] = "Singleplayer Setup";
             mainMenuOptionsStrings[multiPlayerSetup - 1] = "Multiplayer Setup";
             mainMenuOptionsStrings[settings - 1] = "Settings";
-            mainMenuOptionsStrings[3] = "End Game";
+            mainMenuOptionsStrings[3] = "Controls";
+            mainMenuOptionsStrings[4] = "End Game";
             singlePlayerSetupMenuOptionsStrings = new String[numberOfSinglePlayerSetupMenuOptions];
             singlePlayerSetupMenuOptionsStrings[0] = "Beginner Mode";
             singlePlayerSetupMenuOptionsStrings[1] = "Random Mode";
@@ -308,10 +310,35 @@ namespace Tanto_Cuore
                 case generalMaidReplacementScreen:
                     drawGeneralMaidReplacementScreen(gameTime);
                     break;
+                case controlsScreen:
+                    drawControlsScreen(gameTime);
+                    break;
             }
             // TODO: Add your drawing code here
 
             base.Draw(gameTime);
+        }
+
+        private void drawControlsScreen(GameTime gameTime)
+        {
+            spriteBatch.Begin();
+            spriteBatch.DrawString(font, "Controls Keyboard\n"+
+                                         "W,A,S,D and Arrow Keys: Select options\n"+
+                                         "Enter: Play selected card or buy selected card\n"+
+                                         "Right Shift: Chambermaid selected card\n"+
+                                         "Right Control: See selected card details\n"+
+                                         "P: Show volume settings\n"+
+                                         "C: Show controls menu\n"+
+                                         "Backspace: Advance phase (ends turn during buying phase)\n\n\n\n"+
+                                         "Controls X-Box Controller\n" +
+                                         "Left Thumbstick and DPad: Select options\n" +
+                                         "A: Play selected card or buy selected card\n" +
+                                         "X: Chambermaid selected card\n" +
+                                         "Y: See selected card details\n" +
+                                         "Start: Show volume settings\n" +
+                                         "Back: Show controls menu\n" +
+                                         "B: Advance phase (ends turn during buying phase)", new Vector2(0, 0), Color.White);
+            spriteBatch.End();
         }
 
         private void drawSettingsScreen(GameTime gameTime, SpriteBatch spriteBatch)
@@ -675,6 +702,10 @@ namespace Tanto_Cuore
             {
                 spriteBatch.DrawString(font, "Player " + playArea.winner + " wins", new Vector2(0, font.MeasureString("Player " + playArea.winner + " wins").Y * (playArea.numberOfPlayers + 1) + 10), Color.White);
             }
+            else
+            {
+                spriteBatch.DrawString(font, "Game is tied!", new Vector2(0, font.MeasureString("Game is tied!").Y * (playArea.numberOfPlayers + 1) + 10), Color.White);
+            }
             spriteBatch.End();
         }
 
@@ -778,7 +809,7 @@ namespace Tanto_Cuore
             spriteBatch.End();
         }
 
-        private void handleMainMenuInput(KeyboardState keyboard, GamePadState gamepad)
+        private void handleMainMenuInput(KeyboardState keyboard, GamePadState gamepad, GameTime gameTime)
         {
             if ((keyboard.IsKeyDown(Keys.Up) && !keyboardOld.IsKeyDown(Keys.Up)) ||
                     (ButtonState.Pressed == gamepad.DPad.Up && !(ButtonState.Pressed == gamepadOld.DPad.Up)) ||
@@ -808,11 +839,11 @@ namespace Tanto_Cuore
                 gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
             {
                 screenNumber = currentMainMenuOption + 1;
-                if (screenNumber == 4)
+                if (screenNumber == 5)
                 {
                     screenNumber = -1;
-                    this.Exit();
                     MediaPlayer.Stop();
+                    this.Exit();
                 }
                 if (screenNumber == 2)
                 {
@@ -821,6 +852,14 @@ namespace Tanto_Cuore
                 if (screenNumber == settings)
                 {
                     lastScreen = mainMenu;
+                    SettingsStartTime = gameTime.TotalGameTime.TotalSeconds;
+                }
+
+                if (currentMainMenuOption == 3)
+                {
+                    screenNumber = controlsScreen;
+                    lastScreen = mainMenu;
+                    SettingsStartTime = gameTime.TotalGameTime.TotalSeconds;
                 }
             }
         }
@@ -833,7 +872,7 @@ namespace Tanto_Cuore
 
             if (screenNumber == mainMenu)
             {
-                handleMainMenuInput(keyboard, gamepad);
+                handleMainMenuInput(keyboard, gamepad, gameTime);
             }
             else if(screenNumber == singlePlayerSetup)
             {
@@ -858,6 +897,10 @@ namespace Tanto_Cuore
             else if (screenNumber == settings)
             {
                 handleSettingsMenu(keyboard, gamepad, gameTime);
+            }
+            else if (screenNumber == controlsScreen)
+            {
+                handleControlsMenu(keyboard, gamepad, gameTime);
             }
             else
             {
@@ -887,16 +930,41 @@ namespace Tanto_Cuore
             if (keyboard.IsKeyDown(Keys.P) && !keyboardOld.IsKeyDown(Keys.P) ||
                         gamepad.IsButtonDown(Buttons.Start) && !gamepadOld.IsButtonDown(Buttons.Start))
             {
-                if (screenNumber != generalMaidReplacementScreen)
+                if (screenNumber != generalMaidReplacementScreen || screenNumber != settings || screenNumber != controlsScreen)
                 {
                     lastScreen = screenNumber;
                     screenNumber = settings;
                     SettingsStartTime = gameTime.TotalGameTime.TotalSeconds;
                 }
             }
+
+            if (keyboard.IsKeyDown(Keys.C) && !keyboardOld.IsKeyDown(Keys.C) ||
+                        gamepad.IsButtonDown(Buttons.Back) && !gamepadOld.IsButtonDown(Buttons.Back))
+            {
+                if (screenNumber != generalMaidReplacementScreen || screenNumber != settings || screenNumber != controlsScreen)
+                {
+                    lastScreen = screenNumber;
+                    screenNumber = controlsScreen;
+                    SettingsStartTime = gameTime.TotalGameTime.TotalSeconds;
+                }
+            }
             gamepadOld = gamepad;
             mouseOld = mouse;
             keyboardOld = keyboard;
+        }
+
+        private void handleControlsMenu(KeyboardState keyboard, GamePadState gamepad, GameTime gameTime)
+        {
+            if (keyboard.IsKeyDown(Keys.Enter) && !keyboardOld.IsKeyDown(Keys.Enter) ||
+                    gamepad.IsButtonDown(Buttons.A) && !gamepadOld.IsButtonDown(Buttons.A))
+            {
+                screenNumber = lastScreen;
+            }
+
+            if (gameTime.TotalGameTime.TotalSeconds - SettingsStartTime > 60)
+            {
+                screenNumber = lastScreen;
+            }
         }
 
         private void handleSettingsMenu(KeyboardState keyboard, GamePadState gamepad, GameTime gameTime)
